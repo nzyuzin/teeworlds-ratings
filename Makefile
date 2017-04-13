@@ -1,4 +1,4 @@
-COMPILER = ocamlc
+COMPILER = ocamlfind ocamlc -linkpkg -package yojson -package str
 CLIENT_SOURCES = send_score.ml
 CLIENT_EXECUTABLE = report_scores
 
