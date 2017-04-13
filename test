@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-./report_scores -d "$(cat test.txt)"
+nc -l 12488 &
+./report_scores -d -s "127.0.0.1" -p 12488 "$(cat test.txt)"
