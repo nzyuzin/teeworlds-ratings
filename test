@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+./report_scores -d "$(cat test.txt)"

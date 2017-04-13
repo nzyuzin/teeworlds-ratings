@@ -1,0 +1,4 @@
+Gametype: rCTF
+Winner: RED
+Players:
+JohnDoe Tees 99 RED

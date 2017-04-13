@@ -15,6 +15,8 @@
  *
  *)
 
+let debug: bool ref = ref false
+
 type tteam = Red | Blue
 type tplayer = { name: string; clan: string; score: int; team: tteam }
 
@@ -81,7 +83,13 @@ let usage = "Usage: " ^ Sys.argv.(0) ^ " scores"
 
 let scores: string ref = ref ""
 
+let cl_arguments = [
+  ("-d", Arg.Set(debug), "Enables debug logging");
+]
+
 let _ =
-  let _ = Arg.parse [] (fun scores' -> scores := scores') usage in
+  let _ = Arg.parse cl_arguments (fun scores' -> scores := scores') usage in
+  let _ = if !debug then print_endline ("Input:\n" ^ !scores ^ "\n") in
   let parsed_scores = parse_gameinfo (line_stream_of_string !scores) in
+  let _ = if !debug then print_endline ("Output:") in
   print_endline (Yojson.Basic.pretty_to_string (json_of_gameinfo parsed_scores))
