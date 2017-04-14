@@ -2,8 +2,6 @@ Any error will just blow everything up. Some error handling with pretty presenta
 
 Specifying receiving endpoint via command line is not an option. Configuration file is needed.
 
-It may make sense to separate logical part with parsing and json processing from command line arguments and core program.
-
 README should be written. It should contain installation instruction and dependencies.
 
 It may be useful at least for testing purposes to implement basic server that will wait for messages.
