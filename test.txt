@@ -1,5 +1,5 @@
 Gametype: rCTF
 Winner: RED
 Players:
-JohnDoe Tees 99 RED
-MightyTee Tees 10 BLUE
+"Captain JohnDoe" "Tees" 99 RED
+"MightyTee" "Bad \"Tees\"" 10 BLUE
