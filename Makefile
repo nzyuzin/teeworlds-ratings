@@ -1,6 +1,6 @@
-COMPILER = ocamlfind ocamlc
-PACKAGES = -linkpkg -package yojson -package str -package unix
-CLIENT_SOURCES = gameinfo.ml json.ml main.ml
+COMPILER = ocamlfind ocamlc -thread
+PACKAGES = -linkpkg -package yojson -package str -package unix -package extlib
+CLIENT_SOURCES = gameinfo.ml json.ml network.ml destinations.ml main.ml
 CLIENT_EXECUTABLE = send_gameinfo
 
 all: client
