@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 
 nc -l 12488 &
-./send_gameinfo -d -s "127.0.0.1" -p 12488 "$(cat test.txt)"
+NC_PID=$!
+./send_gameinfo $@ -s "127.0.0.1" -p 12488 "$(cat test.txt)"
+kill -15 ${NC_PID} &> /dev/null
