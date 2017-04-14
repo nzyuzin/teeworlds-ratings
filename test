@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 nc -l 12488 &
-./report_scores -d -s "127.0.0.1" -p 12488 "$(cat test.txt)"
+./send_gameinfo -d -s "127.0.0.1" -p 12488 "$(cat test.txt)"

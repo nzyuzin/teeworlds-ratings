@@ -1,7 +1,7 @@
 COMPILER = ocamlfind ocamlc
 PACKAGES = -linkpkg -package yojson -package str -package unix
-CLIENT_SOURCES = send_score.ml
-CLIENT_EXECUTABLE = report_scores
+CLIENT_SOURCES = gameinfo.ml json.ml main.ml
+CLIENT_EXECUTABLE = send_gameinfo
 
 all: client
 
