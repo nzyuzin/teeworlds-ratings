@@ -4,3 +4,5 @@
 *.cmx
 *.o
 rctf.db
+send_gameinfo
+get_gameinfo
