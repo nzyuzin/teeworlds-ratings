@@ -14,6 +14,8 @@ SERVER_EXECUTABLE = get_gameinfo
 
 all: client_release server_release
 
+debug: client_debug server_debug
+
 client_release:
 	$(BUILD) -o $(CLIENT_EXECUTABLE) $(BASE_SOURCES) $(CLIENT_SOURCES)
 
