@@ -1,3 +1,1 @@
 Any error will just blow everything up. Some error handling with pretty presentation should be added.
-
-It may be useful at least for testing purposes to implement basic server that will wait for messages.
