@@ -7,7 +7,7 @@ Works with https://github.com/nzyuzin/teeworlds rCTF game type.
 Dependencies
 ------------
 
-ocamlfind, ocamlc
+ocamlfind, ocamlc, sqlite3
 
 Packages:
 Yojson, Extlib
