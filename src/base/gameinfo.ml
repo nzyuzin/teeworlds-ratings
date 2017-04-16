@@ -15,10 +15,10 @@
  *
  *)
 
-type tteam = Red | Blue
-type tplayer = { name: string; clan: string; score: int; team: tteam }
+type team = Red | Blue
+type player = { name: string; clan: string; score: int; team: team }
 
-type tgameinfo = { gametype: string; winner: tteam; players: tplayer list; }
+type gameinfo = { gametype: string; winner: team; players: player list; }
 
 let team_of_string team_str = if team_str = "RED" then Red else Blue
 
@@ -64,7 +64,7 @@ let rec parse_players (players_lines: string Stream.t) =
         player :: (parse_players players_lines)
     end
 
-let parse_gameinfo (info_lines: string Stream.t): tgameinfo =
+let parse_gameinfo (info_lines: string Stream.t): gameinfo =
   let id x = x in
   let gametype_str = Stream.next info_lines in
   let gt = Scanf.sscanf gametype_str "Gametype: %s" id in

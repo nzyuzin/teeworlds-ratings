@@ -1,6 +1,6 @@
 let calculate_new_rating player gameinfo = Int64.of_int 1500
 
-let db_player_of_gameinfo_player: Gameinfo.tplayer -> Db.player = function
+let db_player_of_gameinfo_player: Gameinfo.player -> Db.player = function
   {Gameinfo.name = nm; Gameinfo.clan = cn; Gameinfo.score = scr; Gameinfo.team = tm} ->
     {Db.name = nm; Db.clan = cn; Db.rating = Int64.of_int (-1)}
 
