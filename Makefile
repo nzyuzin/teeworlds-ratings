@@ -1,9 +1,9 @@
 COMPILER = ocamlc
 PACKAGES = -linkpkg -package yojson -package str -package unix -package extlib
 SERVER_PACKAGES = $(PACKAGES) -package sqlite3
-BASE_DIR = src/base
-CLIENT_DIR = src/client
-SERVER_DIR = src/server
+BASE_DIR = ./src/base
+CLIENT_DIR = ./src/client
+SERVER_DIR = ./src/server
 BASE_SOURCES = $(BASE_DIR)/gameinfo.ml $(BASE_DIR)/json.ml $(BASE_DIR)/network.ml
 CLIENT_SOURCES =  $(CLIENT_DIR)/destinations.ml $(CLIENT_DIR)/main.ml
 SERVER_SOURCES = $(SERVER_DIR)/db.ml $(SERVER_DIR)/server.ml $(SERVER_DIR)/main.ml
