@@ -34,4 +34,4 @@ db_setup:
 	$(shell tools/db_setup.sh)
 
 clean:
-	rm -f $(CLIENT_EXECUTABLE) $(SERVER_EXECUTABLE) **/*.cmi **/*.cmo **/*.cmx **/*.o
+	rm -f $(CLIENT_EXECUTABLE) $(SERVER_EXECUTABLE) $(shell find . -name '*.cmo' -or -name '*.cmi' -or -name '*.cmx' -or -name '*.o')
