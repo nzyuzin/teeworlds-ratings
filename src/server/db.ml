@@ -12,7 +12,7 @@ let close_db () =
 
 let insert_player_stmt = "insert into players values (?, ?, ?)"
 
-let select_player_stmt = "select name, clan, score from players where name = ?"
+let select_player_stmt = "select name, clan, rating from players where name = ?"
 
 let update_rating_stmt = "update players set rating = ? where name = ?"
 
@@ -23,6 +23,7 @@ let insert_player (player: player) =
   let _ = bind prepared_insert_stmt 2 (Data.TEXT player.clan) in
   let _ = bind prepared_insert_stmt 3 (Data.INT (Int64.of_int 1500)) in
   let _ = step prepared_insert_stmt in
+  let _ = finalize prepared_insert_stmt in
   ()
 
 let select_player (player_name: string): player option =
@@ -33,6 +34,7 @@ let select_player (player_name: string): player option =
    * one row will be returned under select on name *)
   let _ = step prepared_select_stmt in
   let data = row_data prepared_select_stmt in
+  let _ = finalize prepared_select_stmt in
   match data with
   | [| |] -> None
   | [|Data.TEXT nm; Data.TEXT cn; Data.INT rtng|] ->
@@ -46,4 +48,5 @@ let update_rating (player_name: string) (new_rating: int64): unit =
   let _ = bind prepared_update_stmt 1 (Data.INT new_rating) in
   let _ = bind prepared_update_stmt 2 (Data.TEXT player_name) in
   let _ = step prepared_update_stmt in
+  let _ = finalize prepared_update_stmt in
   ()
