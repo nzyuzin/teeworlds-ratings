@@ -10,7 +10,7 @@ Dependencies
 ocamlfind, ocamlc, sqlite3
 
 Packages:
-Yojson, Extlib
+Yojson, Extlib, Sqlite3
 
 Compiling
 ---------
