@@ -16,6 +16,9 @@ let close_connection (conn: connection): unit =
   let _ = Unix.shutdown_connection in_conn in
   close_in in_conn
 
+let establish_server handler addr =
+  Unix.establish_server (fun in_conn out_conn ->  handler (in_conn, out_conn)) addr
+
 let transfer_json addr json =
   let conn = create_connection addr in
   let out_conn = out_connection conn in
