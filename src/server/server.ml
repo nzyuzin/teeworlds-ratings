@@ -21,10 +21,12 @@ let process_message (msg: string) (db: string): unit =
 
 let handle_connection (conn: Network.connection) (db: string): unit =
   let msg = Std.input_all (Network.in_connection conn) in
+  let out_conn = Network.out_connection conn in
   let _ = try
-    process_message msg db
+    let _ = process_message msg db in
+    output_string out_conn "OK"
   with Failure str | Sqlite3.Error str as exc ->
-    let _ = output_string (Network.out_connection conn) str in
+    let _ = output_string out_conn str in
     raise exc in
   Network.close_connection conn
 
