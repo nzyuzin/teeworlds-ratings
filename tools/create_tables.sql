@@ -1,5 +1,6 @@
-create table players(
-  name varchar(15) PRIMARY KEY,
+create table players (
+  id INTEGER PRIMARY KEY,
+  name varchar(15) NOT NULL UNIQUE,
   clan varchar(11) NOT NULL,
   rating int NOT NULL
 );
@@ -9,3 +10,22 @@ select clan, cast(avg(players.rating) as int) as clan_rating
 from players
 group by clan
 order by clan_rating desc;
+
+create table games (
+  id INTEGER PRIMARY KEY,
+  gametype varchar(8) NOT NULL,
+  map varchar(16) NOT NULL,
+  game_time int NOT NULL,
+  winner varchar(4) NOT NULL
+);
+
+create table game_players (
+  game_id INTEGER,
+  player_id INTEGER,
+  score int NOT NULL,
+  team varchar(4) NOT NULL,
+  PRIMARY KEY (game_id, player_id),
+  FOREIGN KEY (player_id) REFERENCES player(id),
+  FOREIGN KEY (game_id) REFERENCES game(id)
+);
+
