@@ -4,7 +4,7 @@
  * ***
  * Gametype: <string>
  * Map: <string>
- * Time: <int>
+ * Gametime: <int>
  * Winner: <RED | BLUE : string>
  * Players:
  * <player list, each player on new line>
