@@ -1,4 +1,6 @@
 Gametype: rCTF
+Map: ctf2
+Gametime: 3000
 Winner: RED
 Players:
 "Captain JohnDoe" "Tees" 99 RED

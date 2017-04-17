@@ -2,10 +2,12 @@
  * Gameinfo format:
  *
  * ***
- * Gametype: <type>
- * Winner: <team>
+ * Gametype: <string>
+ * Map: <string>
+ * Time: <int>
+ * Winner: <RED | BLUE : string>
  * Players:
- * <players>
+ * <player list, each player on new line>
  * ***
  *
  * Player format:
@@ -18,7 +20,13 @@
 type team = Red | Blue
 type player = { name: string; clan: string; score: int; team: team }
 
-type gameinfo = { gametype: string; winner: team; players: player list; }
+type gameinfo = {
+  gametype: string;
+  map: string;
+  time: int;
+  winner: team;
+  players: player list;
+}
 
 let team_of_string team_str = if team_str = "RED" then Red else Blue
 
@@ -68,8 +76,18 @@ let parse_gameinfo (info_lines: string Stream.t): gameinfo =
   let id x = x in
   let gametype_str = Stream.next info_lines in
   let gt = Scanf.sscanf gametype_str "Gametype: %s" id in
+  let map_str = Stream.next info_lines in
+  let mp = Scanf.sscanf map_str "Map: %s" id in
+  let time_str = Stream.next info_lines in
+  let time_in_seconds = Scanf.sscanf time_str "Gametime: %s" id in
   let winner_str = Stream.next info_lines in
   let wnr = Scanf.sscanf winner_str "Winner: %s" id in
   let _ = Stream.junk info_lines in (* Skip "Players:" line *)
   let plrs = parse_players info_lines in
-  {gametype = gt; winner = (team_of_string wnr); players = plrs}
+  {
+    gametype = gt;
+    map = mp;
+    time = int_of_string time_in_seconds;
+    winner = team_of_string wnr;
+    players = plrs;
+  }

@@ -15,6 +15,8 @@ let rec json_of_players (players: Gameinfo.player list) =
 let json_of_gameinfo (gameinfo: Gameinfo.gameinfo) =
   `Assoc([
     ("gametype", `String(gameinfo.Gameinfo.gametype));
+    ("map", `String(gameinfo.Gameinfo.map));
+    ("time", `Int(gameinfo.Gameinfo.time));
     ("winner", `String(Gameinfo.string_of_team(gameinfo.Gameinfo.winner)));
     ("players", `List(json_of_players gameinfo.Gameinfo.players))
   ])
@@ -42,10 +44,14 @@ let gameinfo_of_json (gameinfo: Yojson.Basic.json): Gameinfo.gameinfo =
   match gameinfo with
   | `Assoc([
       ("gametype", `String(gt));
+      ("map", `String(map));
+      ("time", `Int(time));
       ("winner", `String(wnr));
       ("players", `List(plrs))
     ]) -> {
         Gameinfo.gametype = gt;
+        Gameinfo.map = map;
+        Gameinfo.time = time;
         Gameinfo.winner = Gameinfo.team_of_string wnr;
         Gameinfo.players = players_of_json plrs
       }
