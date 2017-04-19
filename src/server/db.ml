@@ -86,3 +86,19 @@ let insert_game_player (player: Gameinfo.player) game_id =
   let _ = step prepared_insert_stmt in
   let _ = finalize prepared_insert_stmt in
   last_insert_rowid (Global.get db)
+
+let select_game_players_stmt =
+  "select " ^
+  "  players.name, players.clan, players.rating " ^
+  "from " ^
+  "  players inner join game_players on players.id = game_players.player_id " ^
+  "where " ^
+  "  game_players.game_id = ?"
+
+let select_game_players_by_team_stmt = select_game_players_stmt ^ " and team = ?"
+
+let select_game_players (game_id: int64): player list =
+  raise (Failure "Not implemented! <Db.select_game_players>") (* TODO: Implement me *)
+
+let select_game_players_by_team (game_id: int64) (team: Gameinfo.team): player list =
+   raise (Failure "Not implemented! <Db.select_game_players_by_team>") (* TODO: Implement me *)

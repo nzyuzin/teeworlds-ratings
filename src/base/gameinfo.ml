@@ -34,6 +34,10 @@ let string_of_team = function
   | Red -> "RED"
   | Blue -> "BLUE"
 
+let opposite_team = function
+  | Red -> Blue
+  | Blue -> Red
+
 let rec parse_players (players_lines: string Stream.t) =
   let until_char str chr from_pos =
     String.sub str from_pos ((String.index_from str from_pos chr) - from_pos) in
