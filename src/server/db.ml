@@ -54,6 +54,26 @@ let exec_update_stmt stmt =
 
 type player = {name: string; clan: string; rating: int64}
 
+let player_of_row row =
+  match row with
+  | [| |] -> None
+  | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng|] ->
+      Some {name = nm; clan = cn; rating = rtng}
+  | anything_else ->
+      raise (Failure "Retrieved player row doesn't match the expected pattern!")
+
+let players_of_rows rows =
+  if List.length rows = 1 then
+    match player_of_row (List.hd rows) with
+    | Some player -> [player]
+    | None -> []
+  else
+    let remove_some = function
+      | Some x -> x
+      | None -> raise (Failure "Unexpected None!") in
+    let maybe_players = List.map player_of_row rows in
+    List.map remove_some maybe_players
+
 let insert_player_stmt = "insert into players (name, clan, rating) values (?, ?, ?)"
 
 let select_player_stmt = "select name, clan, rating from players where name = ?"
@@ -73,12 +93,7 @@ let select_player (player_name: string): player option =
   let _ = bind_values prepared_select_stmt [Data.TEXT player_name] in
   (* We need only a single step since name is a PRIMARY KEY and so no more than
    * one row will be returned under select on name *)
-  match exec_select_single_row_stmt prepared_select_stmt with
-  | [| |] -> None
-  | [|Data.TEXT nm; Data.TEXT cn; Data.INT rtng|] ->
-      Some {name = nm; clan = cn; rating = rtng}
-  | anything_else ->
-      raise (Failure "Retrieved player row doesn't match the expected pattern!")
+  player_of_row (exec_select_single_row_stmt prepared_select_stmt)
 
 let update_rating (player_name: string) (new_rating: int64): unit =
   let open Sqlite3 in
@@ -131,7 +146,16 @@ let select_game_players_stmt =
 let select_game_players_by_team_stmt = select_game_players_stmt ^ " and team = ?"
 
 let select_game_players (game_id: int64): player list =
-  raise (Failure "Not implemented! <Db.select_game_players>") (* TODO: Implement me *)
+  let prepared_stmt = prepare_stmt select_game_players_stmt in
+  let _ = bind_values prepared_stmt [Sqlite3.Data.INT game_id] in
+  let rows = exec_select_stmt prepared_stmt in
+  players_of_rows rows
 
 let select_game_players_by_team (game_id: int64) (team: Gameinfo.team): player list =
-   raise (Failure "Not implemented! <Db.select_game_players_by_team>") (* TODO: Implement me *)
+  let prepared_stmt = prepare_stmt select_game_players_by_team_stmt in
+  let _ = bind_values prepared_stmt [
+    Sqlite3.Data.INT game_id;
+    Sqlite3.Data.TEXT (Gameinfo.string_of_team team)
+  ] in
+  let rows = exec_select_stmt prepared_stmt in
+  players_of_rows rows
