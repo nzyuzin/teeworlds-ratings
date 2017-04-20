@@ -24,7 +24,7 @@ let process_message (msg: string) (db: string): unit =
   let players = gameinfo.Gameinfo.players in
   let _ = Db.open_db db in
   let game_id = Db.insert_game gameinfo in
-  let delayed_updates =
+  let delayed_updates: (unit -> unit) list =
     List.map (fun player -> process_player_info player gameinfo game_id) players in
   (*
    * Forces the computation of the delayed updates. Note that at this point all
