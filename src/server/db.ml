@@ -8,6 +8,48 @@ let close_db () =
   | true -> ()
   | false -> raise (Failure "Couldn't close the database!")
 
+let raise_failure_unexpected_code code =
+  raise (Failure ("Unexpected return code from Sqlite3: " ^ (Sqlite3.Rc.to_string code)))
+
+let check_ok = function
+  | Sqlite3.Rc.OK -> ()
+  | code -> raise_failure_unexpected_code code
+
+let prepare_stmt stmt_string =
+  Sqlite3.prepare (Global.get db) stmt_string
+
+let bind_values stmt vals =
+  let bind_fun i value = check_ok (Sqlite3.bind stmt (i + 1) value) in
+  List.iteri bind_fun vals
+
+let rec step_until_done (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
+  let open Sqlite3 in
+  match step stmt with
+  | Rc.DONE -> [row_data stmt]
+  | Rc.ROW -> (row_data stmt) :: (step_until_done stmt)
+  | other_code -> raise_failure_unexpected_code other_code
+
+let exec_select_stmt (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
+  let result = step_until_done stmt in
+  let _ = check_ok (Sqlite3.finalize stmt) in
+  result
+
+let exec_select_single_row_stmt stmt: Sqlite3.Data.t array =
+  let found_rows = exec_select_stmt stmt in
+  if (List.length found_rows) > 1 then
+    raise (Failure "More than one row selected!")
+  else
+    List.hd found_rows
+
+let exec_insert_stmt stmt =
+  let _ = check_ok (Sqlite3.step stmt) in
+  let _ = check_ok (Sqlite3.finalize stmt) in
+  Sqlite3.last_insert_rowid (Global.get db)
+
+let exec_update_stmt stmt =
+  let _ = check_ok (Sqlite3.step stmt) in
+  check_ok (Sqlite3.finalize stmt)
+
 (* Players *)
 
 type player = {name: string; clan: string; rating: int64}
@@ -19,25 +61,19 @@ let select_player_stmt = "select name, clan, rating from players where name = ?"
 let update_rating_stmt = "update players set rating = ? where name = ?"
 
 let insert_player (player: player) =
+  let prepared_insert_stmt = prepare_stmt insert_player_stmt in
   let open Sqlite3 in
-  let prepared_insert_stmt = prepare (Global.get db) insert_player_stmt in
-  let _ = bind prepared_insert_stmt 1 (Data.TEXT player.name) in
-  let _ = bind prepared_insert_stmt 2 (Data.TEXT player.clan) in
-  let _ = bind prepared_insert_stmt 3 (Data.INT (Int64.of_int 1500)) in
-  let _ = step prepared_insert_stmt in
-  let _ = finalize prepared_insert_stmt in
-  last_insert_rowid (Global.get db)
+  let _ = bind_values prepared_insert_stmt
+    [Data.TEXT player.name; Data.TEXT player.clan; Data.INT (Int64.of_int 1500)] in
+  exec_insert_stmt prepared_insert_stmt
 
 let select_player (player_name: string): player option =
   let open Sqlite3 in
-  let prepared_select_stmt = prepare (Global.get db) select_player_stmt in
-  let _ = bind prepared_select_stmt 1 (Data.TEXT player_name) in
+  let prepared_select_stmt = prepare_stmt select_player_stmt in
+  let _ = bind_values prepared_select_stmt [Data.TEXT player_name] in
   (* We need only a single step since name is a PRIMARY KEY and so no more than
    * one row will be returned under select on name *)
-  let _ = step prepared_select_stmt in
-  let data = row_data prepared_select_stmt in
-  let _ = finalize prepared_select_stmt in
-  match data with
+  match exec_select_single_row_stmt prepared_select_stmt with
   | [| |] -> None
   | [|Data.TEXT nm; Data.TEXT cn; Data.INT rtng|] ->
       Some {name = nm; clan = cn; rating = rtng}
@@ -46,12 +82,9 @@ let select_player (player_name: string): player option =
 
 let update_rating (player_name: string) (new_rating: int64): unit =
   let open Sqlite3 in
-  let prepared_update_stmt = prepare (Global.get db) update_rating_stmt in
-  let _ = bind prepared_update_stmt 1 (Data.INT new_rating) in
-  let _ = bind prepared_update_stmt 2 (Data.TEXT player_name) in
-  let _ = step prepared_update_stmt in
-  let _ = finalize prepared_update_stmt in
-  ()
+  let prepared_update_stmt = prepare_stmt update_rating_stmt in
+  let _ = bind_values prepared_update_stmt [Data.INT new_rating; Data.TEXT player_name] in
+  exec_update_stmt prepared_update_stmt
 
 (* Games *)
 
@@ -65,27 +98,27 @@ let insert_game_player_stmt =
 
 let insert_game (game: Gameinfo.gameinfo) =
   let open Sqlite3 in
-  let prepared_insert_stmt = prepare (Global.get db) insert_game_stmt in
-  let _ = bind prepared_insert_stmt 1 (Data.TEXT game.Gameinfo.gametype) in
-  let _ = bind prepared_insert_stmt 2 (Data.TEXT game.Gameinfo.map) in
-  let _ = bind prepared_insert_stmt 3 (Data.INT (Int64.of_int game.Gameinfo.time)) in
+  let prepared_insert_stmt = prepare_stmt insert_game_stmt in
   let winner = Gameinfo.string_of_team game.Gameinfo.winner in
-  let _ = bind prepared_insert_stmt 4 (Data.TEXT winner) in
-  let _ = step prepared_insert_stmt in
-  let _ = finalize prepared_insert_stmt in
-  last_insert_rowid (Global.get db)
+  let _ = bind_values prepared_insert_stmt [
+    Data.TEXT game.Gameinfo.gametype;
+    Data.TEXT game.Gameinfo.map;
+    Data.INT (Int64.of_int game.Gameinfo.time);
+    Data.TEXT winner
+  ] in
+  exec_insert_stmt prepared_insert_stmt
 
 let insert_game_player (player: Gameinfo.player) game_id =
   let open Sqlite3 in
-  let prepared_insert_stmt = prepare (Global.get db) insert_game_player_stmt in
-  let _ = bind prepared_insert_stmt 1 (Data.INT game_id) in
-  let _ = bind prepared_insert_stmt 2 (Data.INT (Int64.of_int player.Gameinfo.score)) in
+  let prepared_insert_stmt = prepare_stmt insert_game_player_stmt in
   let team = Gameinfo.string_of_team player.Gameinfo.team in
-  let _ = bind prepared_insert_stmt 3 (Data.TEXT team) in
-  let _ = bind prepared_insert_stmt 4 (Data.TEXT player.Gameinfo.name) in
-  let _ = step prepared_insert_stmt in
-  let _ = finalize prepared_insert_stmt in
-  last_insert_rowid (Global.get db)
+  let _ = bind_values prepared_insert_stmt [
+    Data.INT game_id;
+    Data.INT (Int64.of_int player.Gameinfo.score);
+    Data.TEXT team;
+    Data.TEXT player.Gameinfo.name
+  ] in
+  exec_insert_stmt prepared_insert_stmt
 
 let select_game_players_stmt =
   "select " ^
