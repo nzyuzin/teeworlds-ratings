@@ -1,27 +1,17 @@
-Design document is as follows:
-
-
-
-
 **************Our goal:
-
-
 
 
 
 To create a ranking system with a ladder, where we can see which clan is the strongest. Random teams do not have the benefit of a place in the ladder. 
 
 It is reserved for long term teams, a.k.a clans. A clan's ranking actually is based on individual player ratings. The total power of a clan comes from 
-it's players. The players individually receive their ranking either by clanwars, or by participating in "official" capgames.
-
-
-
+it's players. The players individually receive their ranking either by clanwars, or by participating in "official" capgames. Captain games are fully
+supported and also require logging in before the ranked game starts.
 
 
 
 
 *************The method:
-
 
 
 
@@ -44,10 +34,7 @@ and affect games positively or negatively.
 
 
 
-
-
 *******The rating system:
-
 
 
 
@@ -80,7 +67,6 @@ quite a bit from it (especially if you lose the game!)
 
 
 
-
 ********Game modes are: 
 
 ctf3 (3on3) 
@@ -89,17 +75,14 @@ ctf5 (5on5, 6on6, 7on7,8on8)
 ctf_tantum (4on4)
 
 
-
 +++++Special rules for clanwars:+++++
 
 Since all of this is based on ELO, we have to discourage repetitive maps and small teams. We have two options here. Seperate ELO rankings per map, what would be more accurate, but 
 lack diversity. Secondly, to add a coefficient for undesired maps, so that your ranking does not get the "full" ranking boost. Else, a team of 3 players could single handedly push 
 the ranking into high points simply by only playing ctf3. Ergo, the points you potentially earn will be multiplied by a coefficient that is proprietary to the defined map.
 
-Alas, 
+Therefore:
 
 ctf2 has the coefficient "1". 
 ctf3 has "0.5" ctf5 has "1.1" 
 ctf_tantum has "1".
-
-=This is an unfinished draft=
