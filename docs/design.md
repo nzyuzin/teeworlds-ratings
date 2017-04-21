@@ -32,14 +32,10 @@ Rating system
 
 It is based off of ingame score.
 
-For every win
-
-in a team, you get base points. Only winning is rewarded. If you perform well or bad in relation to average team score, your base score will receive either extra points or
+For every win in a team, you get base points. Only winning is rewarded. If you perform well or bad in relation to average team score, your base score will receive either extra points or
 get a substraction, and your personal rating will be either boosted or will suffer. Your ranking gains are dependant on the ELO of the other team.
 
-For every loss
-
-You lose the points -- losing is tough. It's all about the teamplay. The player(s) that caused the loss should get their rating taken down severely.
+For every loss you lose the points -- losing is tough. It's all about the teamplay. The player(s) that caused the loss should get their rating taken down severely.
 
 TO SUMMARIZE:
 
@@ -57,7 +53,9 @@ Supported game types
 --------------------
 
 ctf3 (3on3)
-ctf2 (4on4,5on5)
+
+ctf2 (4on4, 5on5)
+
 ctf_tantum (4on4)
 
 
@@ -68,6 +66,8 @@ Since all of this is based on ELO, repetitive maps and small teams are discourag
 lack diversity. Secondly, to add a coefficient for undesired maps, so that the ranking does not get the "full" ranking boost. Else, a team of 3 players could single handedly push
 the ranking into high points simply by only playing ctf3. Ergo, the points player potentially earns will be multiplied by a coefficient that is proprietary to the defined map.
 
-ctf2 has the coefficient "1".
+ctf2 has the coefficient "1"
+
 ctf3 has "0.5"
-ctf_tantum has "1".
+
+ctf_tantum has "1"
