@@ -39,10 +39,10 @@ let parse_player_rank msg =
 
 let parse_player_request msg =
   let player_request_type_str = Stream.next msg in
-  let callback_addr_str = Stream.next msg in
-  let callback_addr = Network.address_of_string callback_addr_str in
   let client_id_str = Stream.next msg in
   let client_id = int_of_string client_id_str in
+  let callback_addr_str = Stream.next msg in
+  let callback_addr = Network.address_of_string callback_addr_str in
   let parsed_player_request =
     match player_request_type_str with
     | "Player_rank" -> parse_player_rank msg

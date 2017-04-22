@@ -100,12 +100,17 @@ let json_of_teeworlds_message: Teeworlds_message.message -> Yojson.Basic.json = 
         ("message_content", json_of_gameinfo gameinfo);
      ])
   | Teeworlds_message.Player_request (player_request, clid, addr) ->
-    `Assoc([
-      ("player_request_type", `String(Teeworlds_message.string_of_player_request player_request));
-      ("client_id", `Int(clid));
-      ("callback_address", `String(Network.string_of_address addr));
-      ("player_request_content", json_of_player_request player_request);
-    ])
+      `Assoc([
+        ("message_type", `String("Player_request"));
+        ("message_content",
+          `Assoc([
+            ("player_request_type",
+              `String(Teeworlds_message.string_of_player_request player_request));
+            ("client_id", `Int(clid));
+            ("callback_address", `String(Network.string_of_address addr));
+            ("player_request_content", json_of_player_request player_request);
+          ]));
+      ])
 
 let teeworlds_message_of_json (json: Yojson.Basic.json): Teeworlds_message.message =
   match json with

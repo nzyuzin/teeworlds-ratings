@@ -35,19 +35,20 @@ let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
   let _ = List.iter2 (fun player rating -> Rating.update_rating player rating) players ratings in
   Db.close_db ()
 
-let report_player_rank (player, rank) clid addr =
+let report_player_rank rating rank clid addr =
   let conn = Teeworlds_econ.connect addr "test" in
   let command = "_cb_report_rank " ^ (string_of_int clid) ^
-    " " ^ (Int64.to_string player.Db.rating) ^ " " ^ (Int64.to_string rank) in
-  Teeworlds_econ.execute_command conn command
+    " " ^ (Int64.to_string rating) ^ " " ^ (Int64.to_string rank) in
+  let _ = Teeworlds_econ.execute_command conn command in
+  Teeworlds_econ.disconnect conn
 
 let process_player_request ((pr, clid, addr): Teeworlds_message.player_request * int * Network.address) db =
   let _ = Db.open_db db in
   let _ = match pr with
   | Teeworlds_message.Player_rank name -> begin
       match (Db.select_player_with_rank name) with
-      | None -> raise (PlayerNotFound name)
-      | Some (player, rank) -> report_player_rank (player, rank) clid addr
+      | None -> report_player_rank Int64.minus_one Int64.minus_one clid addr
+      | Some (player, rank) -> report_player_rank player.Db.rating rank clid addr
     end in
   Db.close_db ()
 
