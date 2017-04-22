@@ -29,6 +29,9 @@ type message =
   | Gameinfo of Gameinfo.gameinfo
   | Player_request of player_request * int * Network.address
 
+let string_of_player_request = function
+  | Player_rank _ -> "Player_rank"
+
 let parse_player_rank msg =
   let player_line = Stream.next msg in
   let player_name = Parser.read_quoted_word player_line 0 in

@@ -64,13 +64,21 @@ let gameinfo_of_json (gameinfo: Yojson.Basic.json): Teeworlds_message.message =
       }
   | json -> raise (error_ill_formed "gameinfo" json)
 
+let json_of_player_rank: Teeworlds_message.player_request -> Yojson.Basic.json = function
+  | Teeworlds_message.Player_rank name -> `Assoc([
+      ("player_name", `String(name));
+    ])
+
 let player_rank_of_json: Yojson.Basic.json -> Teeworlds_message.player_request = function
   | `Assoc([
       ("player_name", `String(name));
     ]) -> Teeworlds_message.Player_rank name
   | something_else -> raise (error_ill_formed "player_rank" something_else)
 
-let player_request_message_of_json: Yojson.Basic.json -> Teeworlds_message.message = function
+let json_of_player_request: Teeworlds_message.player_request -> Yojson.Basic.json = function
+  | Teeworlds_message.Player_rank _ as player_rank -> json_of_player_rank player_rank
+
+let player_request_of_json: Yojson.Basic.json -> Teeworlds_message.message = function
   | `Assoc([
       ("player_request_type", `String(player_request_type));
       ("client_id", `Int(client_id));
@@ -85,6 +93,20 @@ let player_request_message_of_json: Yojson.Basic.json -> Teeworlds_message.messa
       end
   | something_else -> raise (error_ill_formed "player_request" something_else)
 
+let json_of_teeworlds_message: Teeworlds_message.message -> Yojson.Basic.json = function
+  | Teeworlds_message.Gameinfo gameinfo ->
+     `Assoc([
+        ("message_type", `String("Gameinfo"));
+        ("message_content", json_of_gameinfo gameinfo);
+     ])
+  | Teeworlds_message.Player_request (player_request, clid, addr) ->
+    `Assoc([
+      ("player_request_type", `String(Teeworlds_message.string_of_player_request player_request));
+      ("client_id", `Int(clid));
+      ("callback_address", `String(Network.string_of_address addr));
+      ("player_request_content", json_of_player_request player_request);
+    ])
+
 let teeworlds_message_of_json (json: Yojson.Basic.json): Teeworlds_message.message =
   match json with
   | `Assoc([
@@ -93,7 +115,7 @@ let teeworlds_message_of_json (json: Yojson.Basic.json): Teeworlds_message.messa
     ]) -> begin
         match message_type with
         | "Gameinfo" -> gameinfo_of_json rest
-        | "Player_request" -> player_request_message_of_json rest
+        | "Player_request" -> player_request_of_json rest
         | something_else -> raise (error_unknown_value "message type" something_else)
       end
   | something_else -> raise (error_ill_formed "teeworlds_message" something_else)

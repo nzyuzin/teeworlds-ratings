@@ -30,15 +30,9 @@ let send_message message server_ip server_port use_threads =
   else
     send_to_destinations message use_threads
 
-let process_gameinfo gameinfo server_ip server_port use_threads =
-  let jsoned_gameinfo = Json.json_of_gameinfo gameinfo in
-  send_message jsoned_gameinfo
-
 let run teeworlds_message server_ip server_port use_threads debug =
   let _ = Global.set is_debug debug in
   let _ = prdebug ("Input:\n" ^ teeworlds_message ^ "\n") in
   let parsed_message = Teeworlds_message.parse_message teeworlds_message in
-  match parsed_message with
-  | Teeworlds_message.Gameinfo gameinfo ->
-      process_gameinfo gameinfo server_ip server_port use_threads
-  | _ -> raise (Failure "Unsupported message")
+  let json = Json.json_of_teeworlds_message parsed_message in
+  send_message json
