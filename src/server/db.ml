@@ -1,3 +1,5 @@
+exception UnexpectedErrorCode of string
+
 let db = Global.empty "db"
 
 let open_db db_name =
@@ -8,12 +10,16 @@ let close_db () =
   | true -> ()
   | false -> raise (Failure "Couldn't close the database!")
 
-let raise_failure_unexpected_code code =
-  raise (Failure ("Unexpected return code from Sqlite3: " ^ (Sqlite3.Rc.to_string code)))
+let error_unexpected_code code =
+  UnexpectedErrorCode ("Unexpected return code from Sqlite3: " ^ (Sqlite3.Rc.to_string code))
 
 let check_ok = function
   | Sqlite3.Rc.OK -> ()
-  | code -> raise_failure_unexpected_code code
+  | code -> raise (error_unexpected_code code)
+
+let check_done = function
+  | Sqlite3.Rc.DONE -> ()
+  | code -> raise (error_unexpected_code code)
 
 let prepare_stmt stmt_string =
   Sqlite3.prepare (Global.get db) stmt_string
@@ -22,12 +28,13 @@ let bind_values stmt vals =
   let bind_fun i value = check_ok (Sqlite3.bind stmt (i + 1) value) in
   List.iteri bind_fun vals
 
-let rec step_until_done (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
-  let open Sqlite3 in
-  match step stmt with
-  | Rc.DONE -> [row_data stmt]
-  | Rc.ROW -> (row_data stmt) :: (step_until_done stmt)
-  | other_code -> raise_failure_unexpected_code other_code
+let step_until_done (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
+  let rec inner aggregator =
+    match Sqlite3.step stmt with
+    | Sqlite3.Rc.DONE -> aggregator
+    | Sqlite3.Rc.ROW -> inner ((Sqlite3.row_data stmt) :: aggregator)
+    | other_code -> raise (error_unexpected_code other_code) in
+  inner []
 
 let exec_select_stmt (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
   let result = step_until_done stmt in
@@ -37,17 +44,17 @@ let exec_select_stmt (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
 let exec_select_single_row_stmt stmt: Sqlite3.Data.t array =
   let found_rows = exec_select_stmt stmt in
   if (List.length found_rows) > 1 then
-    raise (Failure "More than one row selected!")
+    raise (Failure "More than one row selected")
   else
     List.hd found_rows
 
 let exec_insert_stmt stmt =
-  let _ = check_ok (Sqlite3.step stmt) in
+  let _ = check_done (Sqlite3.step stmt) in
   let _ = check_ok (Sqlite3.finalize stmt) in
   Sqlite3.last_insert_rowid (Global.get db)
 
 let exec_update_stmt stmt =
-  let _ = check_ok (Sqlite3.step stmt) in
+  let _ = check_done (Sqlite3.step stmt) in
   check_ok (Sqlite3.finalize stmt)
 
 (* Players *)

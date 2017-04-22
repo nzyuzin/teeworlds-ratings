@@ -1,7 +1,9 @@
+Gameinfo
 Gametype: rCTF
 Map: ctf2
 Gametime: 3000
-Winner: RED
+Result: RED
 Players:
 "Captain JohnDoe" "Tees" 99 RED
 "MightyTee" "Bad \"Tees\"" 10 BLUE
+"IamNewHere" "tee" 1 BLUE

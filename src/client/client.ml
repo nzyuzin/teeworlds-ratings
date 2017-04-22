@@ -35,4 +35,4 @@ let run teeworlds_message server_ip server_port use_threads debug =
   let _ = prdebug ("Input:\n" ^ teeworlds_message ^ "\n") in
   let parsed_message = Teeworlds_message.parse_message teeworlds_message in
   let json = Json.json_of_teeworlds_message parsed_message in
-  send_message json
+  send_message json server_ip server_port use_threads
