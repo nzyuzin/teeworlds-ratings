@@ -14,9 +14,9 @@ let process_player_info player gameinfo game_id =
    *)
   let lambda = match Db.select_player player.Gameinfo.name with
   | None -> let _ = Db.insert_player (db_player_of_gameinfo_player player) in
-      fun () -> ()
+      fun () -> Int64.of_int 1500
   | Some existing_player ->
-      fun () -> Rating.update_rating player game_id gameinfo.Gameinfo.game_result in
+      fun () -> Rating.calculate_new_rating player game_id gameinfo.Gameinfo.game_result in
   let _ = Db.insert_game_player player game_id in
   lambda
 
@@ -24,14 +24,15 @@ let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
   let players = gameinfo.Gameinfo.players in
   let _ = Db.open_db db in
   let game_id = Db.insert_game gameinfo in
-  let delayed_updates: (unit -> unit) list =
+  let delayed_ratings: (unit -> int64) list =
     List.map (fun player -> process_player_info player gameinfo game_id) players in
   (*
    * Forces the computation of the delayed updates. Note that at this point all
    * inserts have already been computed since they're firstly computed and only
    * then produce empty lambda, while updates are entirely in lambdas.
    *)
-  let _ = List.iter (fun update -> update ()) delayed_updates in
+  let ratings = List.map (fun get_rating -> get_rating ()) delayed_ratings in
+  let _ = List.iter2 (fun player rating -> Rating.update_rating player rating) players ratings in
   Db.close_db ()
 
 let report_player_rank (player, rank) clid addr =
