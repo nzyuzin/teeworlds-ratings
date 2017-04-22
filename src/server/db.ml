@@ -78,6 +78,16 @@ let insert_player_stmt = "insert into players (name, clan, rating) values (?, ?,
 
 let select_player_stmt = "select name, clan, rating from players where name = ?"
 
+let select_player_with_rank_stmt =
+  "with this_player as ( " ^
+  "  select name, clan, rating " ^
+  "  from players " ^
+  "  where name = ? " ^
+  ") " ^
+  "select this_player.name, this_player.clan, this_player.rating, count(higher_players.*) " ^
+  "from players as higher_players, this_player " ^
+  "where this.player.rating < higher_players.rating"
+
 let update_rating_stmt = "update players set rating = ? where name = ?"
 
 let insert_player (player: player) =
@@ -88,12 +98,21 @@ let insert_player (player: player) =
   exec_insert_stmt prepared_insert_stmt
 
 let select_player (player_name: string): player option =
-  let open Sqlite3 in
   let prepared_select_stmt = prepare_stmt select_player_stmt in
-  let _ = bind_values prepared_select_stmt [Data.TEXT player_name] in
+  let _ = bind_values prepared_select_stmt [Sqlite3.Data.TEXT player_name] in
   (* We need only a single step since name is a PRIMARY KEY and so no more than
    * one row will be returned under select on name *)
   player_of_row (exec_select_single_row_stmt prepared_select_stmt)
+
+let select_player_with_rank (player_name: string): (player * int64) option =
+  let prepared_stmt = prepare_stmt select_player_with_rank_stmt in
+  let _ = bind_values prepared_stmt [Sqlite3.Data.TEXT player_name] in
+  match (exec_select_single_row_stmt prepared_stmt) with
+  | [| |] -> None
+  | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng; Sqlite3.Data.INT rank|] ->
+      Some ({name = nm; clan = cn; rating = rtng}, rank)
+  | anything_else ->
+      raise (Failure "Retrieved player row doesn't match the expected pattern!")
 
 let update_rating (player_name: string) (new_rating: int64): unit =
   let open Sqlite3 in
