@@ -56,5 +56,3 @@ let gameinfo_of_json (gameinfo: Yojson.Basic.json): Gameinfo.gameinfo =
         Gameinfo.players = players_of_json plrs
       }
   | json -> raise (Failure ("Unexpected input for gameinfo:\n" ^ (json_pretty_to_string json)))
-
-let json_to_channel chan json = Yojson.Basic.to_channel chan json
