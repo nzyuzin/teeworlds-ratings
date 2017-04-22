@@ -88,13 +88,16 @@ let select_player_stmt = "select name, clan, rating from players where name = ?"
 
 let select_player_with_rank_stmt =
   "with this_player as ( " ^
-  "  select name, clan, rating " ^
-  "  from players " ^
-  "  where name = ? " ^
-  ") " ^
-  "select this_player.name, this_player.clan, this_player.rating, count(*) " ^
-  "from players as higher_players, this_player " ^
-  "where this_player.rating < higher_players.rating"
+  "    select name, clan, rating " ^
+  "    from players " ^
+  "    where name = ? " ^
+  "  ), " ^
+  "  rank as ( " ^
+  "    select count(*) as rank " ^
+  "    from players as higher_players, this_player " ^
+  "    where this_player.rating < higher_players.rating " ^
+  "  ) " ^
+  "select name, clan, rating, (rank + 1) as rank from this_player, rank "
 
 let update_rating_stmt = "update players set rating = ? where name = ?"
 
@@ -121,7 +124,6 @@ let select_player_with_rank (player_name: string): (player * int64) option =
   | None -> None
   | Some [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng; Sqlite3.Data.INT rank|] ->
       Some ({name = nm; clan = cn; rating = rtng}, rank)
-  | Some [|Sqlite3.Data.NULL; Sqlite3.Data.NULL; Sqlite3.Data.NULL; Sqlite3.Data.INT _|] -> None
   | anything_else ->
       raise (Failure "Retrieved player row doesn't match the expected pattern!")
 
