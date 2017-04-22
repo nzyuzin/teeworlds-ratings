@@ -2,7 +2,7 @@ Teeworlds-ratings
 =================
 
 A system to process teeworlds game info at the end of the game.
-Works with https://github.com/nzyuzin/teeworlds rCTF game type.
+Works with https://github.com/nzyuzin/rteeworlds rCTF game type.
 
 Dependencies
 ------------
