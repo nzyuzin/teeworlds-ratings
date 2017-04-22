@@ -11,8 +11,8 @@
  *
  * Player_request format
  * <player_request_type>
- * <callback_address: Network.address>
  * <client_id: int>
+ * <callback_address: Network.address>
  * <rest of the player request>
  *
  * Player_rank format

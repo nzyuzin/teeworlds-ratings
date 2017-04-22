@@ -1,5 +1,13 @@
+exception UnknownValue of string
+exception IllFormedJson of string
+
 let json_pretty_to_string json = Yojson.Basic.pretty_to_string json
 let json_of_string str = Yojson.Basic.from_string str
+
+let error_ill_formed expected got =
+  IllFormedJson ("Unexpected json for " ^ expected ^ ":\n" ^ (json_pretty_to_string got))
+let error_unknown_value field_name field_value =
+  UnknownValue ("Unknown " ^ field_name ^ ": " ^ field_value)
 
 let rec json_of_players (players: Gameinfo.player list) =
   match players with
@@ -37,10 +45,9 @@ let rec players_of_json (players: Yojson.Basic.json list): Gameinfo.player list 
         Gameinfo.team = Gameinfo.team_of_string tm
       } in
       player :: (players_of_json rest)
-  | json :: rest ->
-      raise (Failure ("Unexpected input for players:\n" ^ (json_pretty_to_string json)))
+  | json :: rest -> raise (error_ill_formed "player" json)
 
-let gameinfo_of_json (gameinfo: Yojson.Basic.json): Gameinfo.gameinfo =
+let gameinfo_of_json (gameinfo: Yojson.Basic.json): Teeworlds_message.message =
   match gameinfo with
   | `Assoc([
       ("gametype", `String(gt));
@@ -48,11 +55,45 @@ let gameinfo_of_json (gameinfo: Yojson.Basic.json): Gameinfo.gameinfo =
       ("time", `Int(time));
       ("game_result", `String(rslt));
       ("players", `List(plrs))
-    ]) -> {
+    ]) -> Teeworlds_message.Gameinfo {
         Gameinfo.gametype = gt;
         Gameinfo.map = map;
         Gameinfo.time = time;
         Gameinfo.game_result = Gameinfo.game_result_of_string rslt;
         Gameinfo.players = players_of_json plrs
       }
-  | json -> raise (Failure ("Unexpected input for gameinfo:\n" ^ (json_pretty_to_string json)))
+  | json -> raise (error_ill_formed "gameinfo" json)
+
+let player_rank_of_json: Yojson.Basic.json -> Teeworlds_message.player_request = function
+  | `Assoc([
+      ("player_name", `String(name));
+    ]) -> Teeworlds_message.Player_rank name
+  | something_else -> raise (error_ill_formed "player_rank" something_else)
+
+let player_request_message_of_json: Yojson.Basic.json -> Teeworlds_message.message = function
+  | `Assoc([
+      ("player_request_type", `String(player_request_type));
+      ("client_id", `Int(client_id));
+      ("callback_address", `String(addr_str));
+      ("player_request_content", rest);
+    ]) -> begin
+        match player_request_type with
+        | "Player_rank" ->
+            let addr = Network.address_of_string addr_str in
+            Teeworlds_message.Player_request (player_rank_of_json rest, client_id, addr)
+        | something_else -> raise (error_unknown_value "player request type" something_else)
+      end
+  | something_else -> raise (error_ill_formed "player_request" something_else)
+
+let teeworlds_message_of_json (json: Yojson.Basic.json): Teeworlds_message.message =
+  match json with
+  | `Assoc([
+      ("message_type", `String(message_type));
+      ("message_content", rest);
+    ]) -> begin
+        match message_type with
+        | "Gameinfo" -> gameinfo_of_json rest
+        | "Player_request" -> player_request_message_of_json rest
+        | something_else -> raise (error_unknown_value "message type" something_else)
+      end
+  | something_else -> raise (error_ill_formed "teeworlds_message" something_else)

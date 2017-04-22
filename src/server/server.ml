@@ -1,3 +1,5 @@
+exception PlayerNotFound of string
+
 let db_player_of_gameinfo_player: Gameinfo.player -> Db.player = function
   {Gameinfo.name = nm; Gameinfo.clan = cn; Gameinfo.score = scr; Gameinfo.team = tm} ->
     {Db.name = nm; Db.clan = cn; Db.rating = Int64.of_int (-1)}
@@ -18,9 +20,7 @@ let process_player_info player gameinfo game_id =
   let _ = Db.insert_game_player player game_id in
   lambda
 
-let process_message (msg: string) (db: string): unit =
-  let json = Json.json_of_string msg in
-  let gameinfo = Json.gameinfo_of_json json in
+let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
   let players = gameinfo.Gameinfo.players in
   let _ = Db.open_db db in
   let game_id = Db.insert_game gameinfo in
@@ -33,6 +33,29 @@ let process_message (msg: string) (db: string): unit =
    *)
   let _ = List.iter (fun update -> update ()) delayed_updates in
   Db.close_db ()
+
+let report_player_rank (player, rank) clid addr =
+  let conn = Teeworlds_econ.connect addr "test" in
+  let command = "_cb_report_rank " ^ (string_of_int clid) ^
+    " " ^ (Int64.to_string player.Db.rating) ^ " " ^ (Int64.to_string rank) in
+  Teeworlds_econ.execute_command conn command
+
+let process_player_request ((pr, clid, addr): Teeworlds_message.player_request * int * Network.address) db =
+  let _ = Db.open_db db in
+  let _ = match pr with
+  | Teeworlds_message.Player_rank name -> begin
+      match (Db.select_player_with_rank name) with
+      | None -> raise (PlayerNotFound name)
+      | Some (player, rank) -> report_player_rank (player, rank) clid addr
+    end in
+  Db.close_db ()
+
+let process_message (msg: string) (db: string): unit =
+  let json = Json.json_of_string msg in
+  match Json.teeworlds_message_of_json json with
+  | Teeworlds_message.Gameinfo gameinfo -> process_gameinfo gameinfo db
+  | Teeworlds_message.Player_request (req, clid, addr)  ->
+      process_player_request (req, clid, addr) db
 
 let handle_connection (conn: Network.connection) (db: string): unit =
   let msg = Std.input_all (Network.in_connection conn) in
