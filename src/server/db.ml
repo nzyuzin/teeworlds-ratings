@@ -41,12 +41,14 @@ let exec_select_stmt (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
   let _ = check_ok (Sqlite3.finalize stmt) in
   result
 
-let exec_select_single_row_stmt stmt: Sqlite3.Data.t array =
+let exec_select_single_row_stmt stmt: Sqlite3.Data.t array option =
   let found_rows = exec_select_stmt stmt in
   if (List.length found_rows) > 1 then
     raise (Failure "More than one row selected")
+  else if (List.length found_rows) = 1 then
+    Some (List.hd found_rows)
   else
-    List.hd found_rows
+    None
 
 let exec_insert_stmt stmt =
   let _ = check_done (Sqlite3.step stmt) in
@@ -63,7 +65,6 @@ type player = {name: string; clan: string; rating: int64}
 
 let player_of_row row =
   match row with
-  | [| |] -> None
   | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng|] ->
       Some {name = nm; clan = cn; rating = rtng}
   | anything_else ->
@@ -109,14 +110,16 @@ let select_player (player_name: string): player option =
   let _ = bind_values prepared_select_stmt [Sqlite3.Data.TEXT player_name] in
   (* We need only a single step since name is a PRIMARY KEY and so no more than
    * one row will be returned under select on name *)
-  player_of_row (exec_select_single_row_stmt prepared_select_stmt)
+  match exec_select_single_row_stmt prepared_select_stmt with
+  | None -> None
+  | Some row -> player_of_row row
 
 let select_player_with_rank (player_name: string): (player * int64) option =
   let prepared_stmt = prepare_stmt select_player_with_rank_stmt in
   let _ = bind_values prepared_stmt [Sqlite3.Data.TEXT player_name] in
   match (exec_select_single_row_stmt prepared_stmt) with
-  | [| |] -> None
-  | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng; Sqlite3.Data.INT rank|] ->
+  | None -> None
+  | Some [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng; Sqlite3.Data.INT rank|] ->
       Some ({name = nm; clan = cn; rating = rtng}, rank)
   | anything_else ->
       raise (Failure "Retrieved player row doesn't match the expected pattern!")
