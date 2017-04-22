@@ -16,7 +16,7 @@ create table games (
   gametype varchar(8) NOT NULL,
   map varchar(16) NOT NULL,
   game_time int NOT NULL,
-  winner varchar(4) NOT NULL,
+  game_result varchar(7) NOT NULL,
   game_date text NOT NULL
 );
 

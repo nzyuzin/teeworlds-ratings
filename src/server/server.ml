@@ -14,7 +14,7 @@ let process_player_info player gameinfo game_id =
   | None -> let _ = Db.insert_player (db_player_of_gameinfo_player player) in
       fun () -> ()
   | Some existing_player ->
-      fun () -> Rating.update_rating player game_id gameinfo.Gameinfo.winner in
+      fun () -> Rating.update_rating player game_id gameinfo.Gameinfo.game_result in
   let _ = Db.insert_game_player player game_id in
   lambda
 

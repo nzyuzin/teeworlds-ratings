@@ -17,7 +17,7 @@ let json_of_gameinfo (gameinfo: Gameinfo.gameinfo) =
     ("gametype", `String(gameinfo.Gameinfo.gametype));
     ("map", `String(gameinfo.Gameinfo.map));
     ("time", `Int(gameinfo.Gameinfo.time));
-    ("winner", `String(Gameinfo.string_of_team(gameinfo.Gameinfo.winner)));
+    ("game_result", `String(Gameinfo.string_of_game_result(gameinfo.Gameinfo.game_result)));
     ("players", `List(json_of_players gameinfo.Gameinfo.players))
   ])
 
@@ -46,13 +46,13 @@ let gameinfo_of_json (gameinfo: Yojson.Basic.json): Gameinfo.gameinfo =
       ("gametype", `String(gt));
       ("map", `String(map));
       ("time", `Int(time));
-      ("winner", `String(wnr));
+      ("game_result", `String(rslt));
       ("players", `List(plrs))
     ]) -> {
         Gameinfo.gametype = gt;
         Gameinfo.map = map;
         Gameinfo.time = time;
-        Gameinfo.winner = Gameinfo.team_of_string wnr;
+        Gameinfo.game_result = Gameinfo.game_result_of_string rslt;
         Gameinfo.players = players_of_json plrs
       }
   | json -> raise (Failure ("Unexpected input for gameinfo:\n" ^ (json_pretty_to_string json)))

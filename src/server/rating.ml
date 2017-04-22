@@ -15,13 +15,19 @@ let average_rating (players: Db.player list): int64 =
   let ratings = List.map (fun player -> player.Db.rating) players in
   List.fold_left ( Int64.add ) (Int64.of_int 0) ratings
 
-let update_rating (player: Gameinfo.player) (game_id: int64) (winner: Gameinfo.team): unit =
-  let winners = Db.select_game_players_by_team game_id winner in
-  let losers = Db.select_game_players_by_team game_id (Gameinfo.opposite_team winner) in
-  let winning_team_rating = average_rating winners in
-  let losing_team_rating = average_rating losers in
-  let new_rating = if player.Gameinfo.team = winner then
-      elo winning_team_rating losing_team_rating Victory
+let update_rating (player: Gameinfo.player) (game_id: int64) (game_result: Gameinfo.game_result): unit =
+  let reds = Db.select_game_players_by_team game_id Gameinfo.Red in
+  let blues = Db.select_game_players_by_team game_id Gameinfo.Blue in
+  let red_team_rating = average_rating reds in
+  let blue_team_rating = average_rating blues in
+  let rating_for_team team result = match team with
+  | Gameinfo.Red -> elo red_team_rating blue_team_rating result
+  | Gameinfo.Blue -> elo blue_team_rating red_team_rating result in
+  let new_rating = match game_result with
+  | Gameinfo.Aborted -> rating_for_team player.Gameinfo.team Defeat
+  | Gameinfo.Winner winner ->
+    if player.Gameinfo.team = winner then
+      rating_for_team player.Gameinfo.team Victory
     else
-      elo losing_team_rating winning_team_rating Defeat in
+      rating_for_team player.Gameinfo.team Defeat in
   Db.update_rating player.Gameinfo.name new_rating

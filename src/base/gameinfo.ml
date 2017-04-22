@@ -5,7 +5,7 @@
  * Gametype: <string>
  * Map: <string>
  * Gametime: <int>
- * Winner: <RED | BLUE : string>
+ * Result: <game_result>
  * Players:
  * <player list, each player on new line>
  * ***
@@ -18,13 +18,16 @@
  *)
 
 type team = Red | Blue
+type game_result =
+  | Winner of team
+  | Aborted
 type player = { name: string; clan: string; score: int; team: team }
 
 type gameinfo = {
   gametype: string;
   map: string;
   time: int;
-  winner: team;
+  game_result: game_result;
   players: player list;
 }
 
@@ -37,6 +40,12 @@ let string_of_team = function
 let opposite_team = function
   | Red -> Blue
   | Blue -> Red
+
+let game_result_of_string str = Winner (team_of_string str)
+
+let string_of_game_result = function
+  | Aborted -> "ABORTED"
+  | Winner tm -> string_of_team tm
 
 let rec parse_players (players_lines: string Stream.t) =
   match Stream.peek players_lines with
@@ -66,14 +75,14 @@ let parse_gameinfo (info_lines: string Stream.t): gameinfo =
   let mp = Scanf.sscanf map_str "Map: %s" id in
   let time_str = Stream.next info_lines in
   let time_in_seconds = Scanf.sscanf time_str "Gametime: %s" id in
-  let winner_str = Stream.next info_lines in
-  let wnr = Scanf.sscanf winner_str "Winner: %s" id in
+  let game_result_str = Stream.next info_lines in
+  let gmrslt = Scanf.sscanf game_result_str "Result: %s" id in
   let _ = Stream.junk info_lines in (* Skip "Players:" line *)
   let plrs = parse_players info_lines in
   {
     gametype = gt;
     map = mp;
     time = int_of_string time_in_seconds;
-    winner = team_of_string wnr;
+    game_result = game_result_of_string gmrslt;
     players = plrs;
   }

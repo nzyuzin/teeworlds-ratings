@@ -104,7 +104,7 @@ let update_rating (player_name: string) (new_rating: int64): unit =
 (* Games *)
 
 let insert_game_stmt =
-  "insert into games (gametype, map, game_time, winner, game_date) " ^
+  "insert into games (gametype, map, game_time, game_result, game_date) " ^
   "values (?, ?, ?, ?, datetime('now'))"
 
 let insert_game_player_stmt =
@@ -114,12 +114,12 @@ let insert_game_player_stmt =
 let insert_game (game: Gameinfo.gameinfo) =
   let open Sqlite3 in
   let prepared_insert_stmt = prepare_stmt insert_game_stmt in
-  let winner = Gameinfo.string_of_team game.Gameinfo.winner in
+  let game_result = Gameinfo.string_of_game_result game.Gameinfo.game_result in
   let _ = bind_values prepared_insert_stmt [
     Data.TEXT game.Gameinfo.gametype;
     Data.TEXT game.Gameinfo.map;
     Data.INT (Int64.of_int game.Gameinfo.time);
-    Data.TEXT winner
+    Data.TEXT game_result
   ] in
   exec_insert_stmt prepared_insert_stmt
 
