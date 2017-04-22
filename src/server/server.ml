@@ -36,11 +36,9 @@ let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
   Db.close_db ()
 
 let report_player_rank rating rank clid addr =
-  let conn = Teeworlds_econ.connect addr "test" in
   let command = "_cb_report_rank " ^ (string_of_int clid) ^
     " " ^ (Int64.to_string rating) ^ " " ^ (Int64.to_string rank) in
-  let _ = Teeworlds_econ.execute_command conn command in
-  Teeworlds_econ.disconnect conn
+  Teeworlds_econ.execute_command addr "test" command
 
 let process_player_request ((pr, clid, addr): Teeworlds_message.player_request * int * Network.address) db =
   let _ = Db.open_db db in

@@ -1,6 +1,6 @@
 COMPILER = ocamlc
 PACKAGES = -linkpkg -package yojson -package str -package unix -package extlib
-SERVER_PACKAGES = $(PACKAGES) -package sqlite3
+SERVER_PACKAGES = $(PACKAGES) -package sqlite3 -package netclient
 BASE_DIR = ./src/base
 CLIENT_DIR = ./src/client
 SERVER_DIR = ./src/server
