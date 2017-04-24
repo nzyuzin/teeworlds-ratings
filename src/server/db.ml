@@ -1,5 +1,17 @@
 exception UnexpectedErrorCode of string
 
+type player = {name: string; clan: string; rating: int64}
+
+let player_of_row row =
+  match row with
+  | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng|] ->
+      {name = nm; clan = cn; rating = rtng}
+  | anything_else ->
+      raise (Failure "Retrieved player row doesn't match the expected pattern!")
+
+let players_of_rows rows =
+  List.map player_of_row rows
+
 let db = Global.empty "db"
 
 let open_db db_name =
@@ -59,20 +71,6 @@ let exec_update_stmt stmt =
   let _ = check_done (Sqlite3.step stmt) in
   check_ok (Sqlite3.finalize stmt)
 
-(* Players *)
-
-type player = {name: string; clan: string; rating: int64}
-
-let player_of_row row =
-  match row with
-  | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng|] ->
-      {name = nm; clan = cn; rating = rtng}
-  | anything_else ->
-      raise (Failure "Retrieved player row doesn't match the expected pattern!")
-
-let players_of_rows rows =
-  List.map player_of_row rows
-
 let insert_player_stmt = "insert into players (name, clan, rating) values (?, ?, ?)"
 
 let select_player_stmt = "select name, clan, rating from players where name = ?"
@@ -92,7 +90,17 @@ let select_player_with_rank_stmt =
   "  ) " ^
   "select name, clan, rating, (rank + 1) as rank from this_player, rank "
 
-let update_rating_stmt = "update players set rating = ? where name = ?"
+let update_rating_stmt = "update players set rating = rating + ? where name = ?"
+
+let update_game_rating_change_stmt = "update game_players set rating_change = ? where game_id = ? and player_id = (select id from players where name = ? limit(1))"
+
+let insert_game_stmt =
+  "insert into games (gametype, map, game_time, game_result, game_date) " ^
+  "values (?, ?, ?, ?, datetime('now'))"
+
+let insert_game_player_stmt =
+  "insert into game_players (game_id, player_id, score, team) " ^
+  "select ? as game_id, id as player_id, ? as score, ? as team from players where name = ?"
 
 let insert_player (player: player) =
   let prepared_insert_stmt = prepare_stmt insert_player_stmt in
@@ -124,21 +132,15 @@ let select_player_with_rank (player_name: string): (player * int64) option =
   | anything_else ->
       raise (Failure "Retrieved player row doesn't match the expected pattern!")
 
-let update_rating (player_name: string) (new_rating: int64): unit =
+let update_rating (game_id: int64) (player_name: string) (rating_change: int64): unit =
   let open Sqlite3 in
   let prepared_update_stmt = prepare_stmt update_rating_stmt in
-  let _ = bind_values prepared_update_stmt [Data.INT new_rating; Data.TEXT player_name] in
-  exec_update_stmt prepared_update_stmt
-
-(* Games *)
-
-let insert_game_stmt =
-  "insert into games (gametype, map, game_time, game_result, game_date) " ^
-  "values (?, ?, ?, ?, datetime('now'))"
-
-let insert_game_player_stmt =
-  "insert into game_players (game_id, player_id, score, team) " ^
-  "select ? as game_id, id as player_id, ? as score, ? as team from players where name = ?"
+  let _ = bind_values prepared_update_stmt [Data.INT rating_change; Data.TEXT player_name] in
+  let _ = exec_update_stmt prepared_update_stmt in
+  let prepared_rating_change_update_stmt = prepare_stmt update_game_rating_change_stmt in
+  let _ = bind_values prepared_rating_change_update_stmt
+    [Data.INT rating_change; Data.INT game_id; Data.TEXT player_name] in
+  exec_update_stmt prepared_rating_change_update_stmt
 
 let insert_game (game: Gameinfo.gameinfo) =
   let open Sqlite3 in

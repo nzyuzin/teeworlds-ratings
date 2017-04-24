@@ -32,5 +32,5 @@ let calculate_new_rating (player: Gameinfo.player) (game_id: int64) (game_result
     else
       rating_for_team player.Gameinfo.team Defeat
 
-let update_rating (player: Gameinfo.player) (new_rating: int64) =
-  Db.update_rating player.Gameinfo.name new_rating
+let update_rating (game_id: int64) (player: Gameinfo.player) (new_rating: int64) =
+  Db.update_rating game_id player.Gameinfo.name new_rating

@@ -15,8 +15,9 @@ let process_player_info player gameinfo game_id =
   let lambda = match Db.select_player player.Gameinfo.name with
   | None -> let _ = Db.insert_player (db_player_of_gameinfo_player player) in
       fun () -> Int64.of_int 1500
-  | Some existing_player ->
-      fun () -> Rating.calculate_new_rating player game_id gameinfo.Gameinfo.game_result in
+  | Some existing_player -> fun () -> let new_rating =
+      Rating.calculate_new_rating player game_id gameinfo.Gameinfo.game_result in
+      Int64.sub new_rating existing_player.Db.rating in
   let _ = Db.insert_game_player player game_id in
   lambda
 
@@ -32,7 +33,8 @@ let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
    * then produce empty lambda, while updates are entirely in lambdas.
    *)
   let ratings = List.map (fun get_rating -> get_rating ()) delayed_ratings in
-  let _ = List.iter2 (fun player rating -> Rating.update_rating player rating) players ratings in
+  let update_rating player rating = Rating.update_rating game_id player rating in
+  let _ = List.iter2 update_rating players ratings in
   Db.close_db ()
 
 let report_player_rank clid player_name rating rank =
