@@ -24,6 +24,7 @@ exception UnknownMessageType of string
 
 type player_request =
   | Player_rank of string
+  | Top5_players
 
 type message =
   | Gameinfo of Gameinfo.gameinfo
@@ -31,6 +32,7 @@ type message =
 
 let string_of_player_request = function
   | Player_rank _ -> "Player_rank"
+  | Top5_players -> "Top5_players"
 
 let parse_player_rank msg =
   let player_line = Stream.next msg in
@@ -46,6 +48,7 @@ let parse_player_request msg =
   let parsed_player_request =
     match player_request_type_str with
     | "Player_rank" -> parse_player_rank msg
+    | "Top5_players" -> Top5_players
     | other_type -> raise (UnknownMessageType other_type)
   in
   Player_request (parsed_player_request, client_id, callback_addr)

@@ -41,6 +41,18 @@ let report_player_rank clid player_name rating rank addr =
   ^ " " ^ (Int64.to_string rank) in
   Teeworlds_econ.execute_command addr "test" command
 
+let report_top5 clid addr =
+  let rec minus_ones times =
+    if times = 0 then ""
+    else " -1 -1" ^ (minus_ones (times - 1)) in
+  let top5_players = Db.select_top5_players () in
+  let top5_players_len = List.length top5_players in
+  let combine_name_rating prev p = prev ^ " " ^ p.Db.name ^ " " ^ (Int64.to_string p.Db.rating) in
+  let name_ratings = List.fold_left combine_name_rating "" top5_players in
+  let command = "_cb_report_top5 " ^ (string_of_int clid) ^
+    name_ratings ^ (minus_ones (5 - top5_players_len)) in
+  Teeworlds_econ.execute_command addr "test" command
+
 let process_player_request ((pr, clid, addr): Teeworlds_message.player_request * int * Network.address) db =
   let _ = Db.open_db db in
   let _ = match pr with
@@ -48,7 +60,8 @@ let process_player_request ((pr, clid, addr): Teeworlds_message.player_request *
       match (Db.select_player_with_rank name) with
       | None -> report_player_rank clid name Int64.minus_one Int64.minus_one addr
       | Some (player, rank) -> report_player_rank clid name player.Db.rating rank addr
-    end in
+    end
+  | Teeworlds_message.Top5_players -> report_top5 clid addr in
   Db.close_db ()
 
 let process_message (msg: string) (db: string): unit =

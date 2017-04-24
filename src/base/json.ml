@@ -64,11 +64,6 @@ let gameinfo_of_json (gameinfo: Yojson.Basic.json): Teeworlds_message.message =
       }
   | json -> raise (error_ill_formed "gameinfo" json)
 
-let json_of_player_rank: Teeworlds_message.player_request -> Yojson.Basic.json = function
-  | Teeworlds_message.Player_rank name -> `Assoc([
-      ("player_name", `String(name));
-    ])
-
 let player_rank_of_json: Yojson.Basic.json -> Teeworlds_message.player_request = function
   | `Assoc([
       ("player_name", `String(name));
@@ -76,7 +71,10 @@ let player_rank_of_json: Yojson.Basic.json -> Teeworlds_message.player_request =
   | something_else -> raise (error_ill_formed "player_rank" something_else)
 
 let json_of_player_request: Teeworlds_message.player_request -> Yojson.Basic.json = function
-  | Teeworlds_message.Player_rank _ as player_rank -> json_of_player_rank player_rank
+  | Teeworlds_message.Player_rank name -> `Assoc([
+      ("player_name", `String(name));
+    ])
+  | Teeworlds_message.Top5_players -> `String("")
 
 let player_request_of_json: Yojson.Basic.json -> Teeworlds_message.message = function
   | `Assoc([
@@ -85,10 +83,12 @@ let player_request_of_json: Yojson.Basic.json -> Teeworlds_message.message = fun
       ("callback_address", `String(addr_str));
       ("player_request_content", rest);
     ]) -> begin
+      let addr = Network.address_of_string addr_str in
         match player_request_type with
         | "Player_rank" ->
-            let addr = Network.address_of_string addr_str in
             Teeworlds_message.Player_request (player_rank_of_json rest, client_id, addr)
+        | "Top5_players" ->
+            Teeworlds_message.Player_request (Teeworlds_message.Top5_players, client_id, addr)
         | something_else -> raise (error_unknown_value "player request type" something_else)
       end
   | something_else -> raise (error_ill_formed "player_request" something_else)

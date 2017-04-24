@@ -66,25 +66,18 @@ type player = {name: string; clan: string; rating: int64}
 let player_of_row row =
   match row with
   | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng|] ->
-      Some {name = nm; clan = cn; rating = rtng}
+      {name = nm; clan = cn; rating = rtng}
   | anything_else ->
       raise (Failure "Retrieved player row doesn't match the expected pattern!")
 
 let players_of_rows rows =
-  if List.length rows = 1 then
-    match player_of_row (List.hd rows) with
-    | Some player -> [player]
-    | None -> []
-  else
-    let remove_some = function
-      | Some x -> x
-      | None -> raise (Failure "Unexpected None!") in
-    let maybe_players = List.map player_of_row rows in
-    List.map remove_some maybe_players
+  List.map player_of_row rows
 
 let insert_player_stmt = "insert into players (name, clan, rating) values (?, ?, ?)"
 
 let select_player_stmt = "select name, clan, rating from players where name = ?"
+
+let select_top5_players_stmt = "select name, clan, rating from players order by rating DESC limit(5)"
 
 let select_player_with_rank_stmt =
   "with this_player as ( " ^
@@ -115,7 +108,11 @@ let select_player (player_name: string): player option =
    * one row will be returned under select on name *)
   match exec_select_single_row_stmt prepared_select_stmt with
   | None -> None
-  | Some row -> player_of_row row
+  | Some row -> Some (player_of_row row)
+
+let select_top5_players (): player list =
+  let prepared_select_stmt = prepare_stmt select_top5_players_stmt in
+  players_of_rows (exec_select_stmt prepared_select_stmt)
 
 let select_player_with_rank (player_name: string): (player * int64) option =
   let prepared_stmt = prepare_stmt select_player_with_rank_stmt in
