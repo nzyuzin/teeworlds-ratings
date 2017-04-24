@@ -1,38 +1,36 @@
+exception ServerError of string
+
 let is_debug = Global.empty "client_debug"
 
 let prdebug msg = if (Global.get is_debug) then prerr_endline msg
 
-let send addr msg =
+let send addr json =
   let _ = prdebug ("Sending message to " ^ (Network.string_of_address addr)) in
-  try
-    Network.transfer_json addr msg
-  with exc ->
-    prerr_endline ("Failure during connection to " ^ (Network.string_of_address addr))
+  let conn = Network.create_connection addr in
+  let out_conn = Network.out_connection conn in
+  let _ = Json.to_channel out_conn json in
+  let _ = output_char out_conn '\n' in
+  let _ = flush out_conn in
+  let server_response_line = input_line (Network.in_connection conn) in
+  let server_response = Json.from_string server_response_line in
+  let result = Json.server_response_of_json server_response in
+  let _ = Network.close_connection conn in
+  result
 
-let send_to_destinations message use_threads =
-  let destinations = Destinations.get_destinations "destinations.txt" in
-  let transfer_message_new_thread addr =
-    Thread.create (fun msg -> send addr msg) message in
-  let transfer_message addr = send addr message in
-  if List.length destinations > 1 then
-    if use_threads then
-      let threads = List.map transfer_message_new_thread destinations in
-      List.iter (fun t -> Thread.join t) threads
-    else
-      List.iter transfer_message destinations
-  else
-    transfer_message (List.hd destinations)
-
-let send_message message server_ip server_port use_threads =
+let send_message message addr =
   let _ = prdebug ("Output:\n" ^ (Json.json_pretty_to_string message) ^ "\n") in
-  if server_ip != "" && server_port != -1 then
-    send (server_ip, server_port) message
-  else
-    send_to_destinations message use_threads
+  send addr message
 
-let run teeworlds_message server_ip server_port use_threads debug =
+let communicate_with_server json addr econ_port econ_password =
+  match send_message json addr with
+  | Teeworlds_message.Acknowledge -> ()
+  | Teeworlds_message.Error str -> raise (ServerError str)
+  | Teeworlds_message.Callback str ->
+      Teeworlds_econ.execute_command ("127.0.0.1", econ_port) econ_password str
+
+let run teeworlds_message addr econ_port econ_password debug =
   let _ = Global.set is_debug debug in
   let _ = prdebug ("Input:\n" ^ teeworlds_message ^ "\n") in
   let parsed_message = Teeworlds_message.parse_message teeworlds_message in
   let json = Json.json_of_teeworlds_message parsed_message in
-  send_message json server_ip server_port use_threads
+  communicate_with_server json addr econ_port econ_password

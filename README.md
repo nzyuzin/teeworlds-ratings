@@ -10,7 +10,7 @@ Dependencies
 ocamlfind ocamlc sqlite3
 
 Opam packages:
-yojson extlib sqlite3 ocamlnet
+yojson extlib sqlite3 ocamlnet config-file
 
 Compiling
 ---------

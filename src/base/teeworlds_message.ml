@@ -12,7 +12,6 @@
  * Player_request format
  * <player_request_type>
  * <client_id: int>
- * <callback_address: Network.address>
  * <rest of the player request>
  *
  * Player_rank format
@@ -28,7 +27,12 @@ type player_request =
 
 type message =
   | Gameinfo of Gameinfo.gameinfo
-  | Player_request of player_request * int * Network.address
+  | Player_request of player_request * int
+
+type server_response =
+  | Acknowledge
+  | Callback of string
+  | Error of string
 
 let string_of_player_request = function
   | Player_rank _ -> "Player_rank"
@@ -43,15 +47,13 @@ let parse_player_request msg =
   let player_request_type_str = Stream.next msg in
   let client_id_str = Stream.next msg in
   let client_id = int_of_string client_id_str in
-  let callback_addr_str = Stream.next msg in
-  let callback_addr = Network.address_of_string callback_addr_str in
   let parsed_player_request =
     match player_request_type_str with
     | "Player_rank" -> parse_player_rank msg
     | "Top5_players" -> Top5_players
     | other_type -> raise (UnknownMessageType other_type)
   in
-  Player_request (parsed_player_request, client_id, callback_addr)
+  Player_request (parsed_player_request, client_id)
 
 let parse_message (msg_string: string) =
   let line_stream_of_string str =

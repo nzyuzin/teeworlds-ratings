@@ -35,13 +35,13 @@ let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
   let _ = List.iter2 (fun player rating -> Rating.update_rating player rating) players ratings in
   Db.close_db ()
 
-let report_player_rank clid player_name rating rank addr econ_password =
+let report_player_rank clid player_name rating rank =
   let command = "_cb_report_rank " ^ (string_of_int clid) ^ " \""
   ^ (String.escaped player_name) ^ "\" " ^ (Int64.to_string rating)
   ^ " " ^ (Int64.to_string rank) in
-  Teeworlds_econ.execute_command addr econ_password command
+  command
 
-let report_top5 clid addr econ_password =
+let report_top5 clid =
   let rec minus_ones times =
     if times = 0 then ""
     else " -1 -1" ^ (minus_ones (times - 1)) in
@@ -52,37 +52,45 @@ let report_top5 clid addr econ_password =
   let name_ratings = List.fold_left combine_name_rating "" top5_players in
   let command = "_cb_report_top5 " ^ (string_of_int clid) ^ " " ^
     name_ratings ^ (minus_ones (5 - top5_players_len)) in
-  Teeworlds_econ.execute_command addr econ_password command
+  command
 
-let process_player_request ((pr, clid, addr): Teeworlds_message.player_request * int * Network.address) db econ_password =
+let process_player_request pr clid db =
   let _ = Db.open_db db in
-  let _ = match pr with
+  let callback_command = match pr with
   | Teeworlds_message.Player_rank name -> begin
       match (Db.select_player_with_rank name) with
-      | None -> report_player_rank clid name Int64.minus_one Int64.minus_one addr econ_password
-      | Some (player, rank) -> report_player_rank clid name player.Db.rating rank addr econ_password
+      | None -> report_player_rank clid name Int64.minus_one Int64.minus_one
+      | Some (player, rank) -> report_player_rank clid name player.Db.rating rank
     end
-  | Teeworlds_message.Top5_players -> report_top5 clid addr econ_password in
-  Db.close_db ()
+  | Teeworlds_message.Top5_players -> report_top5 clid in
+  let _ = Db.close_db () in
+  callback_command
 
-let process_message (msg: string) (db: string) econ_password: unit =
-  let json = Json.json_of_string msg in
-  match Json.teeworlds_message_of_json json with
-  | Teeworlds_message.Gameinfo gameinfo -> process_gameinfo gameinfo db
-  | Teeworlds_message.Player_request (req, clid, addr)  ->
-      process_player_request (req, clid, addr) db econ_password
+let process_message (msg: Json.t) (db: string): Teeworlds_message.server_response =
+  match Json.teeworlds_message_of_json msg with
+  | Teeworlds_message.Gameinfo gameinfo ->
+      let _ = process_gameinfo gameinfo db in
+      Teeworlds_message.Acknowledge
+  | Teeworlds_message.Player_request (req, clid)  ->
+      Teeworlds_message.Callback (process_player_request req clid db)
 
-let handle_connection (conn: Network.connection) (db: string) (econ_password: string): unit =
-  let msg = Std.input_all (Network.in_connection conn) in
+let handle_connection (conn: Network.connection) (db: string): unit =
   let out_conn = Network.out_connection conn in
   let _ = try
-    let _ = process_message msg db econ_password in
-    output_string out_conn "OK"
+    let msg_line = input_line (Network.in_connection conn) in
+    let msg = Json.from_string msg_line in
+    let response = process_message msg db in
+    let _ = Json.to_channel out_conn (Json.json_of_server_response response) in
+    output_char out_conn '\n'
   with Failure str | Sqlite3.Error str as exc ->
-    let _ = output_string out_conn str in
+    let error_message = Json.json_of_server_response (Teeworlds_message.Error str) in
+    let _ = Json.to_channel out_conn error_message in
+    let _ = output_char out_conn '\n' in
+    let _ = flush out_conn in
     raise exc in
+  let _ = flush out_conn in
   Network.close_connection conn
 
-let run port db econ_password =
+let run port db =
   let addr = Unix.ADDR_INET (Unix.inet_addr_of_string "127.0.0.1", port) in
-  Network.establish_server (fun conn -> handle_connection conn db econ_password) addr
+  Network.establish_server (fun conn -> handle_connection conn db) addr
