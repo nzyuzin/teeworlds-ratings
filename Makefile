@@ -8,8 +8,8 @@ SERVER_DIR = ./src/server
 BASE_SOURCES = $(BASE_DIR)/parser.ml $(BASE_DIR)/gameinfo.ml $(BASE_DIR)/network.ml $(BASE_DIR)/teeworlds_message.ml $(BASE_DIR)/json.ml
 CLIENT_SOURCES = $(CLIENT_DIR)/teeworlds_econ.ml $(CLIENT_DIR)/client.ml $(CLIENT_DIR)/main.ml
 SERVER_SOURCES = $(SERVER_DIR)/db.ml $(SERVER_DIR)/rating.ml $(SERVER_DIR)/server.ml $(SERVER_DIR)/main.ml
-BUILD_CLIENT = ocamlfind $(COMPILER) -thread $(CLIENT_PACKAGES) -I $(BASE_DIR) -I $(CLIENT_DIR)
-BUILD_SERVER = ocamlfind $(COMPILER) -thread $(SERVER_PACKAGES) -I $(BASE_DIR) -I $(SERVER_DIR)
+BUILD_CLIENT = ocamlfind $(COMPILER) $(CLIENT_PACKAGES) -I $(BASE_DIR) -I $(CLIENT_DIR)
+BUILD_SERVER = ocamlfind $(COMPILER) $(SERVER_PACKAGES) -I $(BASE_DIR) -I $(SERVER_DIR)
 CLIENT_EXECUTABLE = send_gameinfo
 SERVER_EXECUTABLE = get_gameinfo
 
