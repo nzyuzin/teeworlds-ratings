@@ -25,8 +25,8 @@ create table game_players (
   player_id INTEGER,
   score int NOT NULL,
   team varchar(4) NOT NULL,
+  rating_change int,
   PRIMARY KEY (game_id, player_id),
   FOREIGN KEY (player_id) REFERENCES player(id),
   FOREIGN KEY (game_id) REFERENCES game(id)
 );
-
