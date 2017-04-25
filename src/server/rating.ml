@@ -17,8 +17,8 @@ let average_rating (players: Db.player list): int64 =
   Int64.div summ (Int64.of_int (List.length players))
 
 let calculate_new_rating (player: Gameinfo.player) (game_id: int64) (game_result: Gameinfo.game_result): int64 =
-  let reds = Db.select_game_players_by_team game_id Gameinfo.Red in
-  let blues = Db.select_game_players_by_team game_id Gameinfo.Blue in
+  let reds = Game_requests.select_game_players_by_team game_id Gameinfo.Red in
+  let blues = Game_requests.select_game_players_by_team game_id Gameinfo.Blue in
   let red_team_rating = average_rating reds in
   let blue_team_rating = average_rating blues in
   let rating_for_team team result = match team with
@@ -32,5 +32,6 @@ let calculate_new_rating (player: Gameinfo.player) (game_id: int64) (game_result
     else
       rating_for_team player.Gameinfo.team Defeat
 
-let update_rating (game_id: int64) (player: Gameinfo.player) (new_rating: int64) =
-  Db.update_rating game_id player.Gameinfo.name new_rating
+let update_rating (game_id: int64) (player_name: string) (rating_change: int64) =
+  let _ = Player_requests.update_rating game_id player_name rating_change in
+  Game_requests.update_rating_change game_id player_name rating_change

@@ -12,19 +12,19 @@ let process_player_info player gameinfo game_id =
    * not be in the db. To avoid that situation we ensure that the updates will
    * always come after the inserts.
    *)
-  let lambda = match Db.select_player player.Gameinfo.name with
-  | None -> let _ = Db.insert_player (db_player_of_gameinfo_player player) in
+  let lambda = match Player_requests.select_player player.Gameinfo.name with
+  | None -> let _ = Player_requests.insert_player (db_player_of_gameinfo_player player) in
       fun () -> Int64.of_int 1500
   | Some existing_player -> fun () -> let new_rating =
       Rating.calculate_new_rating player game_id gameinfo.Gameinfo.game_result in
       Int64.sub new_rating existing_player.Db.rating in
-  let _ = Db.insert_game_player player game_id in
+  let _ = Game_requests.insert_game_player player game_id in
   lambda
 
 let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
   let players = gameinfo.Gameinfo.players in
   let _ = Db.open_db db in
-  let game_id = Db.insert_game gameinfo in
+  let game_id = Game_requests.insert_game gameinfo in
   let delayed_ratings: (unit -> int64) list =
     List.map (fun player -> process_player_info player gameinfo game_id) players in
   (*
@@ -33,7 +33,7 @@ let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
    * then produce empty lambda, while updates are entirely in lambdas.
    *)
   let ratings = List.map (fun get_rating -> get_rating ()) delayed_ratings in
-  let update_rating player rating = Rating.update_rating game_id player rating in
+  let update_rating player rating = Rating.update_rating game_id player.Gameinfo.name rating in
   let _ = List.iter2 update_rating players ratings in
   Db.close_db ()
 
@@ -47,7 +47,7 @@ let report_top5 clid =
   let rec minus_ones times =
     if times = 0 then ""
     else " -1 -1" ^ (minus_ones (times - 1)) in
-  let top5_players = Db.select_top5_players () in
+  let top5_players = Player_requests.select_top5_players () in
   let top5_players_len = List.length top5_players in
   let combine_name_rating prev p =
     " \"" ^ (String.escaped p.Db.name) ^ "\" " ^ (Int64.to_string p.Db.rating) ^ " " ^ prev in
@@ -60,7 +60,7 @@ let process_player_request pr clid db =
   let _ = Db.open_db db in
   let callback_command = match pr with
   | Teeworlds_message.Player_rank name -> begin
-      match (Db.select_player_with_rank name) with
+      match (Player_requests.select_player_with_rank name) with
       | None -> report_player_rank clid name Int64.minus_one Int64.minus_one
       | Some (player, rank) -> report_player_rank clid name player.Db.rating rank
     end
