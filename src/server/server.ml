@@ -1,4 +1,4 @@
-exception PlayerNotFound of string
+exception UnknownMessageType of string
 
 let db_player_of_gameinfo_player: Gameinfo.player -> Db.player = function
   {Gameinfo.name = nm; Gameinfo.clan = cn; Gameinfo.score = scr; Gameinfo.team = tm} ->
@@ -68,7 +68,7 @@ let process_player_request pr clid db =
   let _ = Db.close_db () in
   callback_command
 
-let process_message (msg: Json.t) (db: string): Teeworlds_message.server_response =
+let process_teeworlds_message (msg: Json.t) (db: string): Teeworlds_message.server_response =
   match Json.teeworlds_message_of_json msg with
   | Teeworlds_message.Gameinfo gameinfo ->
       let _ = process_gameinfo gameinfo db in
@@ -76,17 +76,25 @@ let process_message (msg: Json.t) (db: string): Teeworlds_message.server_respons
   | Teeworlds_message.Player_request (req, clid)  ->
       Teeworlds_message.Callback (process_player_request req clid db)
 
+let process_message (msg: Json.t) (db: string): Json.t =
+  let pack_teeworlds_message json = Json.of_message (Json.Message ("teeworlds_message", json)) in
+  match Json.to_message msg with
+  | Json.Message ("teeworlds_message", body) ->
+      pack_teeworlds_message (Json.json_of_server_response (process_teeworlds_message body db))
+  | Json.Message ("external_message", body) -> raise (Failure "Not Implemented!")
+  | Json.Message (msg_type, _) -> raise (UnknownMessageType msg_type)
+
 let handle_connection (conn: Network.connection) (db: string): unit =
   let out_conn = Network.out_connection conn in
   let _ = try
     let msg_line = input_line (Network.in_connection conn) in
     let msg = Json.from_string msg_line in
     let response = process_message msg db in
-    let _ = Json.to_channel out_conn (Json.json_of_server_response response) in
+    let _ = Json.to_channel out_conn response in
     output_char out_conn '\n'
   with Failure str | Sqlite3.Error str as exc ->
     let error_message = Json.json_of_server_response (Teeworlds_message.Error str) in
-    let _ = Json.to_channel out_conn error_message in
+    let _ = Json.to_channel out_conn (Json.of_message (Json.Message ("error", error_message))) in
     let _ = output_char out_conn '\n' in
     let _ = flush out_conn in
     raise exc in
