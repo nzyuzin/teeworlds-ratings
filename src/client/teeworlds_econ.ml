@@ -20,7 +20,9 @@ let execute_command addr password command =
           Queue.add (Telnet_data(command ^ "\n")) oq;
           session # update();
           state := Command_sent
-      | Command_sent -> Queue.add Telnet_eof oq in
+      | Command_sent ->
+          Queue.add Telnet_eof oq;
+          session # update () in
     while Queue.length iq > 0 do
       let cmd = Queue.take iq in
       match cmd with
