@@ -69,7 +69,7 @@ let step_until_done (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
   let rec inner aggregator =
     match Sqlite3.step stmt with
     | Sqlite3.Rc.DONE -> aggregator
-    | Sqlite3.Rc.ROW -> inner ((Sqlite3.row_data stmt) :: aggregator)
+    | Sqlite3.Rc.ROW -> inner (aggregator @ [Sqlite3.row_data stmt])
     | other_code -> raise (error_unexpected_code other_code) in
   inner []
 
