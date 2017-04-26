@@ -1,4 +1,6 @@
 exception UnknownMessageType of string
+exception UnsupportedMessageType of string
+exception NotFound
 
 let db_player_of_gameinfo_player: Gameinfo.player -> Db.player = function
   {Gameinfo.name = nm; Gameinfo.clan = cn; Gameinfo.score = scr; Gameinfo.team = tm} ->
@@ -76,12 +78,40 @@ let process_teeworlds_message (msg: Json.t) (db: string): Teeworlds_message.serv
   | Teeworlds_message.Player_request (req, clid)  ->
       Teeworlds_message.Callback (process_player_request req clid db)
 
+let process_data_request (msg: External_messages.data_request) db: External_messages.data_request_response =
+  match msg with
+  | External_messages.Players_by_rating (offset, limit) -> External_messages.Players_by_rating
+      (Player_requests.select_players_by_rating (Int64.of_int offset) (Int64.of_int limit))
+  | External_messages.Player_info name ->
+      let p = Player_requests.select_player name in
+      begin match p with
+        | Some player ->
+          let games = Game_requests.select_latest_games_by_player name 10 in
+          External_messages.Player_info (player, games)
+        | None -> raise NotFound
+      end
+  | External_messages.Clan_info name ->
+      let c = Clan_requests.select_clan name in
+      begin match c with
+        | Some clan ->
+          let players = Player_requests.select_players_by_clan name in
+          External_messages.Clan_info (clan, players)
+        | None -> raise NotFound
+      end
+
+let process_external_message msg db: External_messages.external_message =
+  match External_messages.external_message_of_json msg with
+  | External_messages.Data_request dr -> External_messages.Data_request_response (process_data_request dr db)
+  | External_messages.Data_request_response _ -> raise (UnsupportedMessageType "data_request_response")
+
 let process_message (msg: Json.t) (db: string): Json.t =
   let pack_teeworlds_message json = Json.of_message (Json.Message ("teeworlds_message", json)) in
+  let pack_external_message json = Json.of_message (Json.Message ("external_message", json)) in
   match Json.to_message msg with
   | Json.Message ("teeworlds_message", body) ->
       pack_teeworlds_message (Json.json_of_server_response (process_teeworlds_message body db))
-  | Json.Message ("external_message", body) -> raise (Failure "Not Implemented!")
+  | Json.Message ("external_message", body) ->
+      pack_external_message (External_messages.json_of_external_message (process_external_message body db))
   | Json.Message (msg_type, _) -> raise (UnknownMessageType msg_type)
 
 let handle_connection (conn: Network.connection) (db: string): unit =
@@ -92,12 +122,18 @@ let handle_connection (conn: Network.connection) (db: string): unit =
     let response = process_message msg db in
     let _ = Json.to_channel out_conn response in
     output_char out_conn '\n'
-  with Failure str | Sqlite3.Error str as exc ->
+  with
+  | Failure str | Sqlite3.Error str ->
     let error_message = Json.json_of_server_response (Teeworlds_message.Error str) in
-    let _ = Json.to_channel out_conn (Json.of_message (Json.Message ("error", error_message))) in
+    let _ = Json.to_channel out_conn (Json.of_message (Json.Message ("teeworlds_message", error_message))) in
     let _ = output_char out_conn '\n' in
-    let _ = flush out_conn in
-    raise exc in
+    flush out_conn
+  | NotFound ->
+    let error_message = External_messages.json_of_external_message
+      (External_messages.Data_request_response (External_messages.Error "Requested entity is not found")) in
+    let _ = Json.to_channel out_conn (Json.of_message (Json.Message ("external_message", error_message))) in
+    let _ = output_char out_conn '\n' in
+    flush out_conn in
   let _ = flush out_conn in
   Network.close_connection conn
 

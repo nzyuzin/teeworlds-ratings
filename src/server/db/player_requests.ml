@@ -4,6 +4,10 @@ let insert_player_stmt = "insert into players (name, clan, rating) values (?, ?,
 
 let select_player_stmt = "select name, clan, rating from players where name = ?"
 
+let select_players_by_rating_stmt = "select name, clan, rating from players order by rating DESC offset(?) limit(?)"
+
+let select_players_by_clan_stmt = "select name, clan, rating from players where clan = ?"
+
 let select_top5_players_stmt = "select name, clan, rating from players order by rating DESC limit(5)"
 
 let select_player_with_rank_stmt =
@@ -36,6 +40,14 @@ let select_player (player_name: string): player option =
   match exec_select_single_row_stmt prepared_select_stmt with
   | None -> None
   | Some row -> Some (player_of_row row)
+
+let select_players_by_rating offset limit =
+  let s = prepare_bind_stmt select_players_by_rating_stmt [Sqlite3.Data.INT offset; Sqlite3.Data.INT limit] in
+  players_of_rows (exec_select_stmt s)
+
+let select_players_by_clan clan_name =
+  let s = prepare_bind_stmt select_players_by_clan_stmt [Sqlite3.Data.TEXT clan_name] in
+  players_of_rows (exec_select_stmt s)
 
 let select_top5_players (): player list =
   let prepared_select_stmt = prepare_stmt select_top5_players_stmt in

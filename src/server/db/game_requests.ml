@@ -1,5 +1,11 @@
 open Db
 
+let select_game_stmt =
+  "select id, gametype, map, game_time, game_result, game_date from games where id = ?"
+
+let select_latest_games_by_player_stmt =
+  "select games.id, gametype, map, game_time, game_result, game_date from games, game_players, players where game_id = games.id and player_id = player.id and player.name = ? order by games.game_date DESC limit(?)"
+
 let insert_game_stmt =
   "insert into games (gametype, map, game_time, game_result, game_date) " ^
   "values (?, ?, ?, ?, datetime('now'))"
@@ -9,6 +15,17 @@ let update_game_rating_change_stmt = "update game_players set rating_change = ? 
 let insert_game_player_stmt =
   "insert into game_players (game_id, player_id, score, team) " ^
   "select ? as game_id, id as player_id, ? as score, ? as team from players where name = ?"
+
+let select_game game_id =
+  let s = prepare_bind_stmt select_game_stmt [Sqlite3.Data.INT game_id] in
+  match exec_select_single_row_stmt s with
+  | None -> None
+  | Some row -> Some (Db.game_of_row row)
+
+let select_latest_games_by_player player_name limit =
+  let s = prepare_bind_stmt select_latest_games_by_player_stmt
+    [Sqlite3.Data.TEXT player_name; Sqlite3.Data.INT (Int64.of_int limit)] in
+  games_of_rows (exec_select_stmt s)
 
 let insert_game (game: Gameinfo.gameinfo) =
   let open Sqlite3 in

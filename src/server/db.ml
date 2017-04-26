@@ -1,4 +1,5 @@
 exception UnexpectedErrorCode of string
+exception UnexpectedDbData of string
 
 type player = {name: string; clan: string; rating: int64}
 
@@ -7,12 +8,29 @@ let player_of_row row =
   | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng|] ->
       {name = nm; clan = cn; rating = rtng}
   | anything_else ->
-      raise (Failure "Retrieved player row doesn't match the expected pattern!")
+      raise (UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
 
 let players_of_rows rows =
   List.map player_of_row rows
 
 type clan = {clan_name: string; clan_rating: int64}
+
+let clan_of_row = function
+  | [|Sqlite3.Data.TEXT name; Sqlite3.Data.INT rating|] ->
+      {clan_name = name; clan_rating = rating}
+  | anything_else ->
+      raise (UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
+
+type game = {game_id: int64; gametype: string; map: string; game_time: int64; game_result: string; game_date: string}
+
+let game_of_row = let open Sqlite3.Data in function
+  | [|INT id; TEXT gt; TEXT mp; INT gtime; TEXT res; TEXT date|] ->
+      {game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date}
+  | anything_else ->
+      raise (UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
+
+let games_of_rows rows =
+  List.map game_of_row rows
 
 let db = Global.empty "db"
 
@@ -41,6 +59,11 @@ let prepare_stmt stmt_string =
 let bind_values stmt vals =
   let bind_fun i value = check_ok (Sqlite3.bind stmt (i + 1) value) in
   List.iteri bind_fun vals
+
+let prepare_bind_stmt stmt_string vals =
+  let stmt = prepare_stmt stmt_string in
+  let _ = bind_values stmt vals in
+  stmt
 
 let step_until_done (stmt: Sqlite3.stmt): Sqlite3.Data.t array list =
   let rec inner aggregator =

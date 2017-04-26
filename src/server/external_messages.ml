@@ -8,8 +8,9 @@ type data_request =
 
 type data_request_response =
   | Players_by_rating of Db.player list
-  | Player_info of Db.player * (Gameinfo.gameinfo list)
+  | Player_info of Db.player * (Db.game list)
   | Clan_info of Db.clan * (Db.player list)
+  | Error of string
 
 type external_message =
   | Data_request of data_request
@@ -71,6 +72,17 @@ let json_of_db_clan: Db.clan -> Json.t = function
         ("clan_rating", `Int(Int64.to_int cr));
       ])
 
+let json_of_db_game: Db.game -> Json.t = let open Db in function
+  | {game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date} ->
+      `Assoc([
+        ("game_id", `Int(Int64.to_int id));
+        ("gametype", `String(gt));
+        ("map", `String(mp));
+        ("game_time", `Int(Int64.to_int gtime));
+        ("game_result", `String(res));
+        ("game_date", `String(date));
+      ])
+
 let json_of_data_request_response: data_request_response -> Json.t = function
   | Players_by_rating players ->
       `Assoc([
@@ -82,13 +94,21 @@ let json_of_data_request_response: data_request_response -> Json.t = function
         ("data_request_response_type", `String("player_info"));
         ("data_request_response_content", `Assoc([
           ("player", json_of_db_player player);
-          ("games", `List(List.map Json.json_of_gameinfo games));
+          ("games", `List(List.map json_of_db_game games));
         ]));
       ])
   | Clan_info (clan, players) ->
       `Assoc([
-        ("clan", json_of_db_clan clan);
-        ("players", `List(List.map json_of_db_player players));
+        ("data_request_response_type", `String("clan_info"));
+        ("data_request_response_content", `Assoc([
+          ("clan", json_of_db_clan clan);
+          ("players", `List(List.map json_of_db_player players));
+        ]));
+      ])
+  | Error str ->
+      `Assoc([
+        ("data_request_response_type", `String("error"));
+        ("data_request_response_content", `String(str));
       ])
 
 let json_of_external_message: external_message -> Json.t = function
