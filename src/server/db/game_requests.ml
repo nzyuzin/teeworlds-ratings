@@ -4,7 +4,7 @@ let select_game_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games where id = ?"
 
 let select_latest_games_by_player_stmt =
-  "select games.id, gametype, map, game_time, game_result, game_date from games, game_players, players where game_id = games.id and player_id = player.id and player.name = ? order by games.game_date DESC limit(?)"
+  "select games.id, gametype, map, game_time, game_result, game_date from games, game_players, players where game_id = games.id and player_id = players.id and players.name = ? order by games.game_date DESC limit(?)"
 
 let insert_game_stmt =
   "insert into games (gametype, map, game_time, game_result, game_date) " ^
