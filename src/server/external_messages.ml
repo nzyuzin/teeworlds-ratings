@@ -55,3 +55,45 @@ let external_message_of_json: Json.t -> external_message = function
         | something_else -> raise (UnknownExternalRequest something_else)
       end
   | something_else -> raise (Json.error_ill_formed "teeworlds_message" something_else)
+
+let json_of_db_player: Db.player -> Json.t = function
+  | {Db.name = nm; Db.clan = cn; Db.rating = rtng} ->
+      `Assoc([
+        ("name", `String(nm));
+        ("clan", `String(cn));
+        ("rating", `Int(Int64.to_int rtng));
+      ])
+
+let json_of_db_clan: Db.clan -> Json.t = function
+  | {Db.clan_name = nm; Db.clan_rating = cr} ->
+      `Assoc([
+        ("clan_name", `String(nm));
+        ("clan_rating", `Int(Int64.to_int cr));
+      ])
+
+let json_of_data_request_response: data_request_response -> Json.t = function
+  | Players_by_rating players ->
+      `Assoc([
+        ("data_request_response_type", `String("players_by_rating"));
+        ("data_request_response_content", `List(List.map json_of_db_player players));
+      ])
+  | Player_info (player, games) ->
+      `Assoc([
+        ("data_request_response_type", `String("player_info"));
+        ("data_request_response_content", `Assoc([
+          ("player", json_of_db_player player);
+          ("games", `List(List.map Json.json_of_gameinfo games));
+        ]));
+      ])
+  | Clan_info (clan, players) ->
+      `Assoc([
+        ("clan", json_of_db_clan clan);
+        ("players", `List(List.map json_of_db_player players));
+      ])
+
+let json_of_external_message: external_message -> Json.t = function
+  | Data_request_response content -> `Assoc([
+      ("external_message_type", `String("data_request_response"));
+      ("external_message_content", json_of_data_request_response content);
+    ])
+  | _ -> raise (Failure "Only data_request_response supported")
