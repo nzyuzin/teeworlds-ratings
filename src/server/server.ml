@@ -79,9 +79,10 @@ let process_teeworlds_message (msg: Json.t) (db: string): Teeworlds_message.serv
       Teeworlds_message.Callback (process_player_request req clid db)
 
 let process_data_request (msg: External_messages.data_request) db: External_messages.data_request_response =
-  match msg with
-  | External_messages.Players_by_rating (offset, limit) -> External_messages.Players_by_rating
-      (Player_requests.select_players_by_rating (Int64.of_int offset) (Int64.of_int limit))
+  let _ = Db.open_db db in
+  let result = match msg with
+  | External_messages.Players_by_rating (limit, offset) -> External_messages.Players_by_rating
+      (Player_requests.select_players_by_rating (Int64.of_int limit) (Int64.of_int offset))
   | External_messages.Player_info name ->
       let p = Player_requests.select_player name in
       begin match p with
@@ -97,7 +98,9 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
           let players = Player_requests.select_players_by_clan name in
           External_messages.Clan_info (clan, players)
         | None -> raise NotFound
-      end
+      end in
+  let _ = Db.close_db () in
+  result
 
 let process_external_message msg db: External_messages.external_message =
   match External_messages.external_message_of_json msg with

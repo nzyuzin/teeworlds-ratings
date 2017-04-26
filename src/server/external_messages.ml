@@ -18,9 +18,9 @@ type external_message =
 
 let players_by_rating_of_json: Json.t -> data_request = function
   | `Assoc([
-      ("offset", `Int(offset));
       ("limit", `Int(limit));
-    ]) -> Players_by_rating (offset, limit)
+      ("offset", `Int(offset));
+    ]) -> Players_by_rating (limit, offset)
   | something_else -> raise (Json.error_ill_formed "players_by_rating" something_else)
 
 let player_info_of_json: Json.t -> data_request = function
