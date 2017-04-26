@@ -1,4 +1,4 @@
-open Db;;
+open Db
 
 let insert_game_stmt =
   "insert into games (gametype, map, game_time, game_result, game_date) " ^

@@ -1,4 +1,4 @@
-open Db;;
+open Db
 
 let insert_player_stmt = "insert into players (name, clan, rating) values (?, ?, ?)"
 
