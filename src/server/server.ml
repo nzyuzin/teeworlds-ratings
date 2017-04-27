@@ -14,12 +14,17 @@ let process_player_info player gameinfo game_id =
    * not be in the db. To avoid that situation we ensure that the updates will
    * always come after the inserts.
    *)
-  let lambda = match Player_requests.select_player player.Gameinfo.name with
-  | None -> let _ = Player_requests.insert_player (db_player_of_gameinfo_player player) in
-      fun () -> Int64.of_int 1500
-  | Some existing_player -> fun () -> let new_rating =
-      Rating.calculate_new_rating player game_id gameinfo.Gameinfo.game_result in
-      Int64.sub new_rating existing_player.Db.rating in
+  let select_player player =
+    Player_requests.select_player player.Gameinfo.name in
+  let update_rating existing_player =
+    let new_rating = Rating.calculate_new_rating
+      player game_id gameinfo.Gameinfo.game_result in
+    Int64.sub new_rating existing_player.Db.rating in
+  let lambda = match select_player player with
+  | None -> let _ =
+      Player_requests.insert_player (db_player_of_gameinfo_player player) in
+    (fun () -> update_rating (Option.get (select_player player)))
+  | Some existing_player -> (fun () -> update_rating existing_player) in
   let _ = Game_requests.insert_game_player player game_id in
   lambda
 
