@@ -8,7 +8,7 @@ type data_request =
 
 type data_request_response =
   | Players_by_rating of Db.player list
-  | Player_info of Db.player * (Db.game list)
+  | Player_info of Db.player * ((Db.game * int64) list)
   | Clan_info of Db.clan * (Db.player list)
   | Error of string
 
@@ -72,8 +72,8 @@ let json_of_db_clan: Db.clan -> Json.t = function
         ("clan_rating", `Int(Int64.to_int cr));
       ])
 
-let json_of_db_game: Db.game -> Json.t = let open Db in function
-  | {game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date} ->
+let json_of_db_player_game: (Db.game * int64) -> Json.t = let open Db in function
+  | ({game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date}, rating_change) ->
       `Assoc([
         ("game_id", `Int(Int64.to_int id));
         ("gametype", `String(gt));
@@ -81,6 +81,7 @@ let json_of_db_game: Db.game -> Json.t = let open Db in function
         ("game_time", `Int(Int64.to_int gtime));
         ("game_result", `String(res));
         ("game_date", `String(date));
+        ("rating_change", `Int(Int64.to_int rating_change));
       ])
 
 let json_of_data_request_response: data_request_response -> Json.t = function
@@ -94,7 +95,7 @@ let json_of_data_request_response: data_request_response -> Json.t = function
         ("data_request_response_type", `String("player_info"));
         ("data_request_response_content", `Assoc([
           ("player", json_of_db_player player);
-          ("games", `List(List.map json_of_db_game games));
+          ("games", `List(List.map json_of_db_player_game games));
         ]));
       ])
   | Clan_info (clan, players) ->

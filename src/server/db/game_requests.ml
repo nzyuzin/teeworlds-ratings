@@ -1,10 +1,16 @@
 open Db
 
+let latest_game_of_row = let open Sqlite3.Data in function
+  | [|INT id; TEXT gt; TEXT mp; INT gtime; TEXT res; TEXT date; INT rating_change|] ->
+      ({game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date}, rating_change)
+  | anything_else ->
+      raise (UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
+
 let select_game_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games where id = ?"
 
 let select_latest_games_by_player_stmt =
-  "select games.id, gametype, map, game_time, game_result, game_date from games, game_players, players where game_id = games.id and player_id = players.id and players.name = ? order by games.game_date DESC limit(?)"
+  "select games.id, gametype, map, game_time, case when game_result = team then 'Win' else 'Loss' end as game_result, game_date, rating_change from games, game_players, players where game_id = games.id and player_id = players.id and players.name = ? order by games.game_date DESC limit(?)"
 
 let insert_game_stmt =
   "insert into games (gametype, map, game_time, game_result, game_date) " ^
@@ -25,7 +31,7 @@ let select_game game_id =
 let select_latest_games_by_player player_name limit =
   let s = prepare_bind_stmt select_latest_games_by_player_stmt
     [Sqlite3.Data.TEXT player_name; Sqlite3.Data.INT (Int64.of_int limit)] in
-  games_of_rows (exec_select_stmt s)
+  List.map latest_game_of_row (exec_select_stmt s)
 
 let insert_game (game: Gameinfo.gameinfo) =
   let open Sqlite3 in
