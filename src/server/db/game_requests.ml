@@ -19,8 +19,8 @@ let insert_game_stmt =
 let update_game_rating_change_stmt = "update game_players set rating_change = ? where game_id = ? and player_id = (select id from players where name = ? limit(1))"
 
 let insert_game_player_stmt =
-  "insert into game_players (game_id, player_id, score, team) " ^
-  "select ? as game_id, id as player_id, ? as score, ? as team from players where name = ?"
+  "insert into game_players (game_id, player_id, score, team, rating_change) " ^
+  "select ? as game_id, id as player_id, ? as score, ? as team, 0 as rating_change from players where name = ?"
 
 let select_game game_id =
   let s = prepare_bind_stmt select_game_stmt [Sqlite3.Data.INT game_id] in
