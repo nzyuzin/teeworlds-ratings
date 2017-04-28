@@ -4,7 +4,7 @@ let latest_game_of_row = let open Sqlite3.Data in function
   | [|INT id; TEXT gt; TEXT mp; INT gtime; TEXT res; TEXT date; INT rating_change|] ->
       ({game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date}, rating_change)
   | anything_else ->
-      raise (UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
+      raise (UnexpectedDbData "Retrieved game row doesn't match the expected pattern!")
 
 let select_game_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games where id = ?"
