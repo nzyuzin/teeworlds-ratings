@@ -1,6 +1,6 @@
 exception UnknownMessageType of string
 exception UnsupportedMessageType of string
-exception UnknownPlayer
+exception UnknownPlayer of string
 exception NotFound
 
 let process_player_info player gameinfo game_id =
@@ -18,7 +18,7 @@ let process_player_info player gameinfo game_id =
       player game_id gameinfo.Gameinfo.game_result in
     Int64.sub new_rating existing_player.Db.rating in
   let lambda = match select_player player with
-  | None -> raise UnknownPlayer
+  | None -> raise (UnknownPlayer player.Gameinfo.name)
   | Some existing_player -> (fun () -> update_rating existing_player) in
   let _ = Game_requests.insert_game_player player game_id in
   lambda
@@ -146,6 +146,17 @@ let process_message (msg: Json.t) (db: string): Json.t =
 
 let handle_connection (conn: Network.connection) (db: string): unit =
   let out_conn = Network.out_connection conn in
+  let report_teeworlds_error str =
+    let error_message = Json.json_of_server_response (Teeworlds_message.Error str) in
+    let _ = Json.to_channel out_conn (Json.of_message (Json.Message ("teeworlds_message", error_message))) in
+    let _ = output_char out_conn '\n' in
+    flush out_conn in
+  let report_external_error str =
+    let error_message = External_messages.json_of_external_message_response
+      (External_messages.Error str) in
+    let _ = Json.to_channel out_conn (Json.of_message (Json.Message ("external_message", error_message))) in
+    let _ = output_char out_conn '\n' in
+    flush out_conn in
   let _ = try
     let msg_line = input_line (Network.in_connection conn) in
     let msg = Json.from_string msg_line in
@@ -153,17 +164,9 @@ let handle_connection (conn: Network.connection) (db: string): unit =
     let _ = Json.to_channel out_conn response in
     output_char out_conn '\n'
   with
-  | Failure str | Sqlite3.Error str ->
-    let error_message = Json.json_of_server_response (Teeworlds_message.Error str) in
-    let _ = Json.to_channel out_conn (Json.of_message (Json.Message ("teeworlds_message", error_message))) in
-    let _ = output_char out_conn '\n' in
-    flush out_conn
-  | NotFound ->
-    let error_message = External_messages.json_of_external_message_response
-      (External_messages.Error "Requested entity is not found") in
-    let _ = Json.to_channel out_conn (Json.of_message (Json.Message ("external_message", error_message))) in
-    let _ = output_char out_conn '\n' in
-    flush out_conn in
+  | Failure str | Sqlite3.Error str -> report_teeworlds_error str
+  | UnknownPlayer name -> report_teeworlds_error ("Player with name " ^ name ^ " is not registered")
+  | NotFound -> report_external_error "Requested entity is not found" in
   let _ = flush out_conn in
   Network.close_connection conn
 
