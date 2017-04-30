@@ -33,9 +33,14 @@ let communicate_with_server json addr econ_port econ_password =
       Teeworlds_econ.execute_command ("127.0.0.1", econ_port) econ_password str
 
 let run teeworlds_message addr econ_port econ_password debug =
+  let report_error str =
+    Teeworlds_econ.execute_command ("127.0.0.1", econ_port) econ_password str in
   let _ = Global.set is_debug debug in
   let _ = prdebug ("Input:\n" ^ teeworlds_message ^ "\n") in
   let parsed_message = Teeworlds_message.parse_message teeworlds_message in
   let teeworlds_message_json = Json.json_of_teeworlds_message parsed_message in
   let json = Json.of_message (Json.Message ("teeworlds_message", teeworlds_message_json)) in
-  communicate_with_server json addr econ_port econ_password
+  try
+    communicate_with_server json addr econ_port econ_password
+  with
+  | ServerError str -> report_error str
