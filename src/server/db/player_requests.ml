@@ -1,8 +1,10 @@
 open Db
 
-let insert_player_stmt = "insert into players (name, clan, rating) values (?, ?, ?)"
+let insert_player_stmt = "insert into players (name, clan, rating, secret_key) values (?, ?, ?, ?)"
 
 let select_player_stmt = "select name, clan, rating from players where name = ?"
+
+let select_player_with_secret_stmt = "select name, clan, rating, secret_key from players where name = ?"
 
 let select_players_by_rating_stmt = "select name, clan, rating from players order by rating DESC limit(?) offset(?)"
 
@@ -25,11 +27,17 @@ let select_player_with_rank_stmt =
 
 let update_rating_stmt = "update players set rating = rating + ? where name = ?"
 
+let player_with_secret_of_row = function
+  | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng; Sqlite3.Data.TEXT skey|] ->
+      {name = nm; clan = cn; rating = rtng; secret_key = skey}
+  | anything_else ->
+      raise (Db.UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
+
 let insert_player (player: player) =
   let prepared_insert_stmt = prepare_stmt insert_player_stmt in
   let open Sqlite3 in
   let _ = bind_values prepared_insert_stmt
-    [Data.TEXT player.name; Data.TEXT player.clan; Data.INT (Int64.of_int 1500)] in
+    [Data.TEXT player.name; Data.TEXT player.clan; Data.INT (Int64.of_int 1500); Data.TEXT player.secret_key] in
   exec_insert_stmt prepared_insert_stmt
 
 let select_player (player_name: string): player option =
@@ -40,6 +48,13 @@ let select_player (player_name: string): player option =
   match exec_select_single_row_stmt prepared_select_stmt with
   | None -> None
   | Some row -> Some (player_of_row row)
+
+let select_player_with_secret (player_name: string): player option =
+  let prepared_select_stmt = prepare_bind_stmt select_player_with_secret_stmt
+    [Sqlite3.Data.TEXT player_name] in
+  match exec_select_single_row_stmt prepared_select_stmt with
+  | None -> None
+  | Some row -> Some (player_with_secret_of_row row)
 
 let select_players_by_rating limit offset =
   let s = prepare_bind_stmt select_players_by_rating_stmt [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
@@ -59,7 +74,7 @@ let select_player_with_rank (player_name: string): (player * int64) option =
   match (exec_select_single_row_stmt prepared_stmt) with
   | None -> None
   | Some [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng; Sqlite3.Data.INT rank|] ->
-      Some ({name = nm; clan = cn; rating = rtng}, rank)
+      Some ({name = nm; clan = cn; rating = rtng; secret_key = ""}, rank)
   | anything_else ->
       raise (Failure "Retrieved player row doesn't match the expected pattern!")
 

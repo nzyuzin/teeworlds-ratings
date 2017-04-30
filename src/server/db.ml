@@ -1,12 +1,12 @@
 exception UnexpectedErrorCode of string
 exception UnexpectedDbData of string
 
-type player = {name: string; clan: string; rating: int64}
+type player = {name: string; clan: string; rating: int64; secret_key: string}
 
 let player_of_row row =
   match row with
   | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng|] ->
-      {name = nm; clan = cn; rating = rtng}
+      {name = nm; clan = cn; rating = rtng; secret_key = ""}
   | anything_else ->
       raise (UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
 

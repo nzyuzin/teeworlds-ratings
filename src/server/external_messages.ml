@@ -1,20 +1,33 @@
 exception UnknownExternalRequest of string
 exception UnknownDataRequest of string
+exception UnknownRegistrationRequest of string
 
 type data_request =
   | Players_by_rating of int * int
   | Player_info of string
   | Clan_info of string
 
+type registration_request =
+  | Register of string * string
+  | Name_available of string
+
+type external_message =
+  | Data_request of data_request
+  | Registration_request of registration_request
+
 type data_request_response =
   | Players_by_rating of Db.player list
   | Player_info of Db.player * ((Db.game * int64) list)
   | Clan_info of Db.clan * (Db.player list)
-  | Error of string
 
-type external_message =
-  | Data_request of data_request
+type registration_request_response =
+  | Register
+  | Name_available of bool
+
+type external_message_response =
   | Data_request_response of data_request_response
+  | Registration_request_response of registration_request_response
+  | Error of string
 
 let players_by_rating_of_json: Json.t -> data_request = function
   | `Assoc([
@@ -27,7 +40,7 @@ let player_info_of_json: Json.t -> data_request = function
   | `Assoc([
       ("name", `String(name));
     ]) -> Player_info name
-  | something_else -> raise (Json.error_ill_formed "clan_info" something_else)
+  | something_else -> raise (Json.error_ill_formed "player_info" something_else)
 
 let clan_info_of_json: Json.t -> data_request = function
   | `Assoc([
@@ -47,22 +60,48 @@ let data_request_of_json: Json.t -> data_request = function
       end
   | something_else -> raise (Json.error_ill_formed "data_request" something_else)
 
+let name_available_of_json: Json.t -> registration_request = function
+  | `Assoc([
+      ("name", (`String name));
+    ]) -> Name_available name
+  | something_else -> raise (Json.error_ill_formed "name_available" something_else)
+
+let register_of_json: Json.t -> registration_request = function
+  | `Assoc([
+      ("name", `String(name));
+      ("clan", `String(clan));
+    ]) -> Register (name, clan)
+  | something_else -> raise (Json.error_ill_formed "register" something_else)
+
+let registration_request_of_json: Json.t -> registration_request = function
+  | `Assoc([
+      ("registration_request_type", `String(registration_request_type));
+      ("registration_request_content", body);
+    ]) -> begin match registration_request_type with
+        | "name_available" -> name_available_of_json body
+        | "register" -> register_of_json body
+        | something_else -> raise (UnknownRegistrationRequest something_else)
+      end
+  | something_else -> raise (Json.error_ill_formed "registration_request" something_else)
+
 let external_message_of_json: Json.t -> external_message = function
   | `Assoc([
       ("external_message_type", `String(message_type));
       ("external_message_content", rest);
     ]) -> begin match message_type with
         | "data_request" -> Data_request (data_request_of_json rest)
+        | "registration_request" -> Registration_request (registration_request_of_json rest)
         | something_else -> raise (UnknownExternalRequest something_else)
       end
   | something_else -> raise (Json.error_ill_formed "teeworlds_message" something_else)
 
 let json_of_db_player: Db.player -> Json.t = function
-  | {Db.name = nm; Db.clan = cn; Db.rating = rtng} ->
+  | {Db.name = nm; Db.clan = cn; Db.rating = rtng; Db.secret_key} ->
       `Assoc([
         ("name", `String(nm));
         ("clan", `String(cn));
         ("rating", `Int(Int64.to_int rtng));
+        ("secret_key", `String(secret_key));
       ])
 
 let json_of_db_clan: Db.clan -> Json.t = function
@@ -106,15 +145,28 @@ let json_of_data_request_response: data_request_response -> Json.t = function
           ("players", `List(List.map json_of_db_player players));
         ]));
       ])
-  | Error str ->
-      `Assoc([
-        ("data_request_response_type", `String("error"));
-        ("data_request_response_content", `String(str));
-      ])
 
-let json_of_external_message: external_message -> Json.t = function
+let json_of_registration_request_response: registration_request_response -> Json.t = function
+  | Register -> `Assoc([
+      ("registration_request_response_type", `String("register"));
+      ("registration_request_response_content", `String("OK"));
+    ])
+  | Name_available answer -> `Assoc([
+      ("registration_request_response_type", `String("name_available"));
+      ("registration_request_response_content", `Bool(answer));
+    ])
+
+let json_of_external_message_response: external_message_response -> Json.t = function
   | Data_request_response content -> `Assoc([
       ("external_message_type", `String("data_request_response"));
       ("external_message_content", json_of_data_request_response content);
     ])
-  | _ -> raise (Failure "Only data_request_response supported")
+  | Registration_request_response content -> `Assoc([
+      ("external_message_type", `String("registration_request_response"));
+      ("external_message_content", json_of_registration_request_response content);
+    ])
+  | Error str ->
+      `Assoc([
+        ("external_message_type", `String("error"));
+        ("external_message_content", `String(str));
+      ])
