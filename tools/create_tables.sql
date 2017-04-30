@@ -3,7 +3,7 @@ create table players (
   name varchar(16) NOT NULL UNIQUE,
   clan varchar(12) NOT NULL,
   rating int NOT NULL,
-  secret_key text NOT NULL UNIQUE
+  secret_key text NOT NULL
 );
 
 create view clans as
