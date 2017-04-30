@@ -114,6 +114,7 @@ let process_registration_request (rr: External_messages.registration_request) db
   | External_messages.Name_available name ->
       External_messages.Name_available (None == (Player_requests.select_player name))
   | External_messages.Register (name, clan) ->
+      let _ = Random.self_init () in
       let new_secret = string_of_int (Random.bits ()) in
       let _ = Player_requests.insert_player
         {
