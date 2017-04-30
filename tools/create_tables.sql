@@ -1,7 +1,7 @@
 create table players (
   id INTEGER PRIMARY KEY,
-  name varchar(15) NOT NULL UNIQUE,
-  clan varchar(11) NOT NULL,
+  name varchar(16) NOT NULL UNIQUE,
+  clan varchar(12) NOT NULL,
   rating int NOT NULL
 );
 
