@@ -16,6 +16,12 @@
  *
  * Player_rank format
  * <player_name: string>
+ *
+ * Top5_players format
+ * <>
+ *
+ * Login format
+ * <secret_key: string>
  *)
 
 exception IllFormattedMessage of string
@@ -24,6 +30,7 @@ exception UnknownMessageType of string
 type player_request =
   | Player_rank of string
   | Top5_players
+  | Login of string * string
 
 type message =
   | Gameinfo of Gameinfo.gameinfo
@@ -37,11 +44,18 @@ type server_response =
 let string_of_player_request = function
   | Player_rank _ -> "Player_rank"
   | Top5_players -> "Top5_players"
+  | Login (_, _) -> "Login"
 
 let parse_player_rank msg =
   let player_line = Stream.next msg in
   let player_name = Parser.read_quoted_word player_line 0 in
   Player_rank (Parser.unguard_quotes player_name)
+
+let parse_login msg =
+  let player_line = Stream.next msg in
+  let player_name = Parser.read_quoted_word player_line 0 in
+  let secret_key_line = Stream.next msg in
+  Login (player_name, secret_key_line)
 
 let parse_player_request msg =
   let player_request_type_str = Stream.next msg in
@@ -51,6 +65,7 @@ let parse_player_request msg =
     match player_request_type_str with
     | "Player_rank" -> parse_player_rank msg
     | "Top5_players" -> Top5_players
+    | "Login" -> parse_login msg
     | other_type -> raise (UnknownMessageType other_type)
   in
   Player_request (parsed_player_request, client_id)

@@ -95,6 +95,17 @@ let json_of_player_request: Teeworlds_message.player_request -> Yojson.Basic.jso
       ("player_name", `String(name));
     ])
   | Teeworlds_message.Top5_players -> `String("")
+  | Teeworlds_message.Login (name, secret_key) -> `Assoc([
+      ("player_name", `String(name));
+      ("secret_key", `String(secret_key));
+    ])
+
+let login_of_json: t -> Teeworlds_message.player_request = function
+  | `Assoc([
+      ("player_name", `String(name));
+      ("secret_key", `String(secret_key));
+    ]) -> Teeworlds_message.Login (name, secret_key)
+  | something_else -> raise (error_ill_formed "login" something_else)
 
 let player_request_of_json: Yojson.Basic.json -> Teeworlds_message.message = function
   | `Assoc([
@@ -107,6 +118,8 @@ let player_request_of_json: Yojson.Basic.json -> Teeworlds_message.message = fun
             Teeworlds_message.Player_request (player_rank_of_json rest, client_id)
         | "Top5_players" ->
             Teeworlds_message.Player_request (Teeworlds_message.Top5_players, client_id)
+        | "Login" ->
+            Teeworlds_message.Player_request (login_of_json rest, client_id)
         | something_else -> raise (error_unknown_value "player request type" something_else)
       end
   | something_else -> raise (error_ill_formed "player_request" something_else)

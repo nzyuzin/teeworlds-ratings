@@ -66,7 +66,13 @@ let process_player_request pr clid db =
       | None -> report_player_rank clid name Int64.minus_one Int64.minus_one
       | Some (player, rank) -> report_player_rank clid name player.Db.rating rank
     end
-  | Teeworlds_message.Top5_players -> report_top5 clid in
+  | Teeworlds_message.Top5_players -> report_top5 clid
+  | Teeworlds_message.Login (name, secret) ->
+      let player = Player_requests.select_player_with_secret name in
+      match player with
+      | Some p when p.Db.secret_key = secret ->
+          "_cb_auth_player " ^ (string_of_int clid) ^ " \"" ^ (String.escaped name) ^ "\""
+      | _ -> "_cb_bad_auth " ^ (string_of_int clid) in
   let _ = Db.close_db () in
   callback_command
 
