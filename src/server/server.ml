@@ -1,6 +1,6 @@
 exception UnknownMessageType of string
 exception UnsupportedMessageType of string
-exception UnkownPlayer
+exception UnknownPlayer
 exception NotFound
 
 let process_player_info player gameinfo game_id =
@@ -18,7 +18,7 @@ let process_player_info player gameinfo game_id =
       player game_id gameinfo.Gameinfo.game_result in
     Int64.sub new_rating existing_player.Db.rating in
   let lambda = match select_player player with
-  | None -> raise UnkownPlayer
+  | None -> raise UnknownPlayer
   | Some existing_player -> (fun () -> update_rating existing_player) in
   let _ = Game_requests.insert_game_player player game_id in
   lambda
