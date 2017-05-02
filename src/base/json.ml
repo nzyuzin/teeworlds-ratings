@@ -3,7 +3,7 @@ exception IllFormedJson of string
 
 type t = Yojson.Basic.json
 
-type message = Message of string * t
+type message = Message of string * t | Error of string
 
 let json_pretty_to_string json = Yojson.Basic.pretty_to_string json
 let from_string str = Yojson.Basic.from_string str
@@ -18,16 +18,24 @@ let to_channel (chan: out_channel) (json: t): unit = Yojson.Basic.to_channel cha
 
 let to_message: t -> message = function
   | `Assoc([
+      ("message_type", `String("error"));
+      ("message_content", `String(errmsg));
+    ]) -> Error errmsg
+  | `Assoc([
       ("message_type", `String(message_type));
       ("message_content", rest);
     ]) -> Message (message_type, rest)
   | something_else -> raise (error_ill_formed "message" something_else)
 
-let of_message (Message (message_type, message_content)): t =
-  `Assoc([
-    ("message_type", `String(message_type));
-    ("message_content", message_content);
-  ])
+let of_message : message -> t = function
+  | Message (message_type, message_content) -> `Assoc([
+      ("message_type", `String(message_type));
+      ("message_content", message_content);
+    ])
+  | Error str -> `Assoc([
+      ("message_type", `String("error"));
+      ("message_content", `String(str));
+    ])
 
 let rec json_of_players (players: Gameinfo.player list) =
   match players with
@@ -164,10 +172,6 @@ let json_of_server_response: Teeworlds_message.server_response -> t = function
       ("teeworlds_message_type", `String("Callback"));
       ("teeworlds_message_content", `String(str));
     ])
-  | Teeworlds_message.Error str -> `Assoc([
-      ("teeworlds_message_type", `String("Error"));
-      ("teeworlds_message_content", `String(str));
-    ])
 
 let server_response_of_json: t -> Teeworlds_message.server_response = function
   | `Assoc([
@@ -178,9 +182,5 @@ let server_response_of_json: t -> Teeworlds_message.server_response = function
       ("teeworlds_message_type", `String("Callback"));
       ("teeworlds_message_content", `String(str));
     ]) -> Teeworlds_message.Callback str
-  | `Assoc([
-      ("teeworlds_message_type", `String("Error"));
-      ("teeworlds_message_content", `String(str));
-    ]) -> Teeworlds_message.Error str
   | something_else -> raise (error_ill_formed "server_response" something_else)
 

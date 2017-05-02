@@ -27,7 +27,6 @@ type registration_request_response =
 type external_message_response =
   | Data_request_response of data_request_response
   | Registration_request_response of registration_request_response
-  | Error of string
 
 let players_by_rating_of_json: Json.t -> data_request = function
   | `Assoc([
@@ -165,8 +164,3 @@ let json_of_external_message_response: external_message_response -> Json.t = fun
       ("external_message_type", `String("registration_request_response"));
       ("external_message_content", json_of_registration_request_response content);
     ])
-  | Error str ->
-      `Assoc([
-        ("external_message_type", `String("error"));
-        ("external_message_content", `String(str));
-      ])

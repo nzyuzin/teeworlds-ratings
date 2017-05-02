@@ -16,7 +16,8 @@ let send addr json =
   let server_response = Json.from_string server_response_line in
   let response_teeworlds_message = match Json.to_message server_response with
     | Json.Message("teeworlds_message", body) -> body
-    | Json.Message(something_else, _) -> raise (UnrecognizedServerReponse something_else) in
+    | Json.Message(something_else, _) -> raise (UnrecognizedServerReponse something_else)
+    | Json.Error msg -> raise (ServerError msg) in
   let result = Json.server_response_of_json response_teeworlds_message in
   let _ = Network.close_connection conn in
   result
@@ -28,7 +29,6 @@ let send_message message addr =
 let communicate_with_server json addr econ_port econ_password =
   match send_message json addr with
   | Teeworlds_message.Acknowledge -> ()
-  | Teeworlds_message.Error str -> raise (ServerError str)
   | Teeworlds_message.Callback str ->
       Teeworlds_econ.execute_command ("127.0.0.1", econ_port) econ_password str
 

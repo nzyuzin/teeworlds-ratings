@@ -39,7 +39,6 @@ type message =
 type server_response =
   | Acknowledge
   | Callback of string
-  | Error of string
 
 let string_of_player_request = function
   | Player_rank _ -> "Player_rank"
