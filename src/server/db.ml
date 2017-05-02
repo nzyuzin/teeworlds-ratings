@@ -27,10 +27,27 @@ let game_of_row = let open Sqlite3.Data in function
   | [|INT id; TEXT gt; TEXT mp; INT gtime; TEXT res; TEXT date|] ->
       {game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date}
   | anything_else ->
-      raise (UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
+      raise (UnexpectedDbData "Retrieved game row doesn't match the expected pattern!")
 
 let games_of_rows rows =
   List.map game_of_row rows
+
+type game_player = {
+  game_id: int64;
+  player_id: int64;
+  score: int64;
+  team: string;
+  rating_change: int64;
+}
+
+let game_player_of_row = let open Sqlite3.Data in function
+  | [|INT game_id; INT player_id; INT score; TEXT team; INT rating_change|] ->
+      {game_id = game_id; player_id = player_id; score = score; team = team; rating_change = rating_change}
+  | anything_else ->
+      raise (UnexpectedDbData "Retrieved game_player row doesn't match the expected pattern!")
+
+let game_players_of_rows rows =
+  List.map game_player_of_row rows
 
 let db = Global.empty "db"
 

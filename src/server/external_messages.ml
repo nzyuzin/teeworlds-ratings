@@ -6,6 +6,7 @@ type data_request =
   | Players_by_rating of int * int
   | Player_info of string
   | Clan_info of string
+  | Game_info of int64
 
 type registration_request =
   | Register of string * string
@@ -19,6 +20,7 @@ type data_request_response =
   | Players_by_rating of Db.player list
   | Player_info of Db.player * ((Db.game * int64) list)
   | Clan_info of Db.clan * (Db.player list)
+  | Game_info of Db.game * ((Db.game_player * string) list)
 
 type registration_request_response =
   | Register
@@ -47,6 +49,12 @@ let clan_info_of_json: Json.t -> data_request = function
     ]) -> Clan_info name
   | something_else -> raise (Json.error_ill_formed "clan_info" something_else)
 
+let game_info_of_json: Json.t -> data_request = function
+  | `Assoc([
+      ("game_id", `Int(id));
+    ]) -> Game_info (Int64.of_int id)
+  | something_else -> raise (Json.error_ill_formed "game_info" something_else)
+
 let data_request_of_json: Json.t -> data_request = function
   | `Assoc([
       ("data_request_type", `String(data_request_type));
@@ -55,6 +63,7 @@ let data_request_of_json: Json.t -> data_request = function
         | "players_by_rating" -> players_by_rating_of_json body
         | "player_info" -> player_info_of_json body
         | "clan_info" -> clan_info_of_json body
+        | "game_info" -> game_info_of_json body
         | something_else -> raise (UnknownDataRequest something_else)
       end
   | something_else -> raise (Json.error_ill_formed "data_request" something_else)
@@ -110,6 +119,17 @@ let json_of_db_clan: Db.clan -> Json.t = function
         ("clan_rating", `Int(Int64.to_int cr));
       ])
 
+let json_of_db_game: Db.game -> Json.t = let open Db in function
+  | {game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date} ->
+      `Assoc([
+        ("game_id", `Int(Int64.to_int id));
+        ("gametype", `String(gt));
+        ("map", `String(mp));
+        ("game_time", `Int(Int64.to_int gtime));
+        ("game_result", `String(res));
+        ("game_date", `String(date));
+      ])
+
 let json_of_db_player_game: (Db.game * int64) -> Json.t = let open Db in function
   | ({game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date}, rating_change) ->
       `Assoc([
@@ -121,6 +141,20 @@ let json_of_db_player_game: (Db.game * int64) -> Json.t = let open Db in functio
         ("game_date", `String(date));
         ("rating_change", `Int(Int64.to_int rating_change));
       ])
+
+let json_of_db_game_participant: (Db.game_player * string) -> Json.t = let open Db in function
+  | ({ game_id = _;
+      player_id = _;
+      score = scr;
+      team = tm;
+      rating_change = rchng;
+    }, player_name) -> `Assoc([
+        ("player_name", `String(player_name));
+        ("score", `Int(Int64.to_int scr));
+        ("team", `String(tm));
+        ("rating_change", `Int(Int64.to_int rchng));
+      ])
+
 
 let json_of_data_request_response: data_request_response -> Json.t = function
   | Players_by_rating players ->
@@ -142,6 +176,14 @@ let json_of_data_request_response: data_request_response -> Json.t = function
         ("data_request_response_content", `Assoc([
           ("clan", json_of_db_clan clan);
           ("players", `List(List.map json_of_db_player players));
+        ]));
+      ])
+  | Game_info (game, participants) ->
+      `Assoc([
+        ("data_request_response_type", `String("game_info"));
+        ("data_request_response_content", `Assoc([
+          ("game", json_of_db_game game);
+          ("participants", `List(List.map json_of_db_game_participant participants));
         ]));
       ])
 

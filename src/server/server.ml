@@ -103,7 +103,20 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
           let players = Player_requests.select_players_by_clan name in
           External_messages.Clan_info (clan, players)
         | None -> raise NotFound
-      end in
+      end
+  | External_messages.Game_info id ->
+      let attach_name plr =
+        begin match Player_requests.select_player_by_id plr.Db.player_id with
+          | None -> raise (Failure "Player is not found by game player id!")
+          | Some player -> (plr, player.Db.name)
+        end in
+      let game = begin match Game_requests.select_game id with
+          | None -> raise NotFound
+          | Some gm -> gm
+        end in
+      let players = Game_requests.select_game_participants id in
+      let players_with_names = List.map attach_name players in
+      External_messages.Game_info (game, players_with_names) in
   let _ = Db.close_db () in
   result
 

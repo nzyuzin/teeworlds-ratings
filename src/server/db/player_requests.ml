@@ -4,6 +4,8 @@ let insert_player_stmt = "insert into players (name, clan, rating, secret_key) v
 
 let select_player_stmt = "select name, clan, rating from players where name = ?"
 
+let select_player_by_id_stmt = "select name, clan, rating from players where id = ?"
+
 let select_player_with_secret_stmt = "select name, clan, rating, secret_key from players where name = ?"
 
 let select_players_by_rating_stmt = "select name, clan, rating from players order by rating DESC limit(?) offset(?)"
@@ -46,6 +48,12 @@ let select_player (player_name: string): player option =
   (* We need only a single step since name is a PRIMARY KEY and so no more than
    * one row will be returned under select on name *)
   match exec_select_single_row_stmt prepared_select_stmt with
+  | None -> None
+  | Some row -> Some (player_of_row row)
+
+let select_player_by_id (id: int64): player option =
+  let s = prepare_bind_stmt select_player_by_id_stmt [Sqlite3.Data.INT id] in
+  match exec_select_single_row_stmt s with
   | None -> None
   | Some row -> Some (player_of_row row)
 

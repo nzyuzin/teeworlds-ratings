@@ -9,6 +9,9 @@ let latest_game_of_row = let open Sqlite3.Data in function
 let select_game_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games where id = ?"
 
+let select_game_participants_stmt =
+  "select game_id, player_id, score, team, rating_change from game_players where game_id = ?"
+
 let select_latest_games_by_player_stmt =
   "select games.id, gametype, map, game_time, case when game_result = team then 'Win' else 'Loss' end as game_result, game_date, rating_change from games, game_players, players where game_id = games.id and player_id = players.id and players.name = ? order by games.game_date DESC limit(?)"
 
@@ -27,6 +30,10 @@ let select_game game_id =
   match exec_select_single_row_stmt s with
   | None -> None
   | Some row -> Some (Db.game_of_row row)
+
+let select_game_participants game_id: Db.game_player list =
+  let s = prepare_bind_stmt select_game_participants_stmt [Sqlite3.Data.INT game_id] in
+  Db.game_players_of_rows (exec_select_stmt s)
 
 let select_latest_games_by_player player_name limit =
   let s = prepare_bind_stmt select_latest_games_by_player_stmt
