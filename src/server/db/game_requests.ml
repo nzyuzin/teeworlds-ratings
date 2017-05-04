@@ -42,9 +42,13 @@ let select_game_participants game_id: Db.game_player list =
   Db.game_players_of_rows (exec_select_stmt s)
 
 let select_latest_games_by_player player_name limit =
+  let rating_change = ref Int64.minus_one in
+  let fill_rating_change g c = match c with
+  | ("rating_change", Sqlite3.Data.INT rc) -> rating_change := rc; g
+  | _ -> g in
   let s = prepare_bind_stmt select_latest_games_by_player_stmt
     [Sqlite3.Data.TEXT player_name; Sqlite3.Data.INT (Int64.of_int limit)] in
-  List.map latest_game_of_row (exec_select_stmt s)
+  List.map (fun r -> (game_of_row_e r fill_rating_change), !rating_change) (exec_select_stmt s)
 
 let insert_game (game: Gameinfo.gameinfo) =
   let open Sqlite3 in

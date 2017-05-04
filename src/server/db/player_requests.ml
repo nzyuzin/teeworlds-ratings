@@ -29,12 +29,6 @@ let select_player_with_rank_stmt =
 
 let update_rating_stmt = "update players set rating = rating + ? where name = ?"
 
-let player_with_secret_of_row = function
-  | [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng; Sqlite3.Data.TEXT skey|] ->
-      {name = nm; clan = cn; rating = rtng; secret_key = skey}
-  | anything_else ->
-      raise (Db.UnexpectedDbData "Retrieved player row doesn't match the expected pattern!")
-
 let insert_player (player: player) =
   let prepared_insert_stmt = prepare_stmt insert_player_stmt in
   let open Sqlite3 in
@@ -54,9 +48,12 @@ let select_player_by_id (id: int64): player option =
   Option.map player_of_row (exec_select_single_row_stmt s)
 
 let select_player_with_secret (player_name: string): player option =
+  let fill_secret p c = match c with
+  | ("secret_key", Sqlite3.Data.TEXT secret_key) -> {p with secret_key = secret_key}
+  | _ -> p in
   let prepared_select_stmt = prepare_bind_stmt select_player_with_secret_stmt
     [Sqlite3.Data.TEXT player_name] in
-  Option.map player_with_secret_of_row (exec_select_single_row_stmt prepared_select_stmt)
+  Option.map (fun r -> player_of_row_e r fill_secret) (exec_select_single_row_stmt prepared_select_stmt)
 
 let select_players_by_rating limit offset =
   let s = prepare_bind_stmt select_players_by_rating_stmt [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
@@ -71,14 +68,13 @@ let select_top5_players (): player list =
   players_of_rows (exec_select_stmt prepared_select_stmt)
 
 let select_player_with_rank (player_name: string): (player * int64) option =
-  let prepared_stmt = prepare_stmt select_player_with_rank_stmt in
-  let _ = bind_values prepared_stmt [Sqlite3.Data.TEXT player_name] in
-  match (exec_select_single_row_stmt prepared_stmt) with
-  | None -> None
-  | Some [|Sqlite3.Data.TEXT nm; Sqlite3.Data.TEXT cn; Sqlite3.Data.INT rtng; Sqlite3.Data.INT rank|] ->
-      Some ({name = nm; clan = cn; rating = rtng; secret_key = ""}, rank)
-  | anything_else ->
-      raise (Failure "Retrieved player row doesn't match the expected pattern!")
+  let rank = ref Int64.minus_one in
+  let fill_rank p c = match c with
+  | ("rank", Sqlite3.Data.INT r) -> rank := r; p
+  | _ -> p in
+  let prepared_stmt = prepare_bind_stmt select_player_with_rank_stmt [Sqlite3.Data.TEXT player_name] in
+  Option.map (fun p -> (player_of_row_e p fill_rank, !rank))
+    (exec_select_single_row_stmt prepared_stmt)
 
 let update_rating (game_id: int64) (player_name: string) (rating_change: int64): unit =
   let open Sqlite3 in

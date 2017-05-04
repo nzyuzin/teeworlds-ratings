@@ -132,6 +132,7 @@ let process_registration_request (rr: External_messages.registration_request) db
       let new_secret = string_of_int (Random.bits ()) in
       let _ = Player_requests.insert_player
         {
+          Db.id = Int64.minus_one;
           Db.name = name;
           Db.clan = clan;
           Db.rating = Int64.of_int 1500;
