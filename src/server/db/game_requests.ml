@@ -27,9 +27,7 @@ let insert_game_player_stmt =
 
 let select_game game_id =
   let s = prepare_bind_stmt select_game_stmt [Sqlite3.Data.INT game_id] in
-  match exec_select_single_row_stmt s with
-  | None -> None
-  | Some row -> Some (Db.game_of_row row)
+  Option.map Db.game_of_row (exec_select_single_row_stmt s)
 
 let select_game_participants game_id: Db.game_player list =
   let s = prepare_bind_stmt select_game_participants_stmt [Sqlite3.Data.INT game_id] in

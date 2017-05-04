@@ -47,22 +47,16 @@ let select_player (player_name: string): player option =
   let _ = bind_values prepared_select_stmt [Sqlite3.Data.TEXT player_name] in
   (* We need only a single step since name is a PRIMARY KEY and so no more than
    * one row will be returned under select on name *)
-  match exec_select_single_row_stmt prepared_select_stmt with
-  | None -> None
-  | Some row -> Some (player_of_row row)
+  Option.map player_of_row (exec_select_single_row_stmt prepared_select_stmt)
 
 let select_player_by_id (id: int64): player option =
   let s = prepare_bind_stmt select_player_by_id_stmt [Sqlite3.Data.INT id] in
-  match exec_select_single_row_stmt s with
-  | None -> None
-  | Some row -> Some (player_of_row row)
+  Option.map player_of_row (exec_select_single_row_stmt s)
 
 let select_player_with_secret (player_name: string): player option =
   let prepared_select_stmt = prepare_bind_stmt select_player_with_secret_stmt
     [Sqlite3.Data.TEXT player_name] in
-  match exec_select_single_row_stmt prepared_select_stmt with
-  | None -> None
-  | Some row -> Some (player_with_secret_of_row row)
+  Option.map player_with_secret_of_row (exec_select_single_row_stmt prepared_select_stmt)
 
 let select_players_by_rating limit offset =
   let s = prepare_bind_stmt select_players_by_rating_stmt [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
