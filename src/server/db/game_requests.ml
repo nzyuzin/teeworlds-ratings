@@ -9,6 +9,9 @@ let latest_game_of_row = let open Sqlite3.Data in function
 let select_game_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games where id = ?"
 
+let select_latest_games_stmt =
+  "select id, gametype, map, game_time, game_result, game_date from games order by game_date DESC limit(?) offset(?)"
+
 let select_game_participants_stmt =
   "select game_id, player_id, score, team, rating_change from game_players where game_id = ?"
 
@@ -28,6 +31,11 @@ let insert_game_player_stmt =
 let select_game game_id =
   let s = prepare_bind_stmt select_game_stmt [Sqlite3.Data.INT game_id] in
   Option.map Db.game_of_row (exec_select_single_row_stmt s)
+
+let select_latest_games limit offset =
+  let s = prepare_bind_stmt select_latest_games_stmt
+    [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
+  List.map game_of_row (exec_select_stmt s)
 
 let select_game_participants game_id: Db.game_player list =
   let s = prepare_bind_stmt select_game_participants_stmt [Sqlite3.Data.INT game_id] in

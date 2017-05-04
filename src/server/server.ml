@@ -87,7 +87,7 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
   let _ = Db.open_db db in
   let result = match msg with
   | External_messages.Players_by_rating (limit, offset) -> External_messages.Players_by_rating
-      (Player_requests.select_players_by_rating (Int64.of_int limit) (Int64.of_int offset))
+      (Player_requests.select_players_by_rating limit offset)
   | External_messages.Player_info name ->
       let p = Player_requests.select_player_with_secret name in
       begin match p with
@@ -116,7 +116,9 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
         end in
       let players = Game_requests.select_game_participants id in
       let players_with_names = List.map attach_name players in
-      External_messages.Game_info (game, players_with_names) in
+      External_messages.Game_info (game, players_with_names)
+  | External_messages.Games_by_date (limit, offset) -> External_messages.Games_by_date
+    (Game_requests.select_latest_games limit offset) in
   let _ = Db.close_db () in
   result
 

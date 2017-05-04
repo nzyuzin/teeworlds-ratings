@@ -3,10 +3,11 @@ exception UnknownDataRequest of string
 exception UnknownRegistrationRequest of string
 
 type data_request =
-  | Players_by_rating of int * int
+  | Players_by_rating of int64 * int64
   | Player_info of string
   | Clan_info of string
   | Game_info of int64
+  | Games_by_date of int64 * int64
 
 type registration_request =
   | Register of string * string
@@ -21,6 +22,7 @@ type data_request_response =
   | Player_info of Db.player * ((Db.game * int64) list)
   | Clan_info of Db.clan * (Db.player list)
   | Game_info of Db.game * ((Db.game_player * string) list)
+  | Games_by_date of Db.game list
 
 type registration_request_response =
   | Register
@@ -34,7 +36,7 @@ let players_by_rating_of_json: Json.t -> data_request = function
   | `Assoc([
       ("limit", `Int(limit));
       ("offset", `Int(offset));
-    ]) -> Players_by_rating (limit, offset)
+    ]) -> Players_by_rating (Int64.of_int limit, Int64.of_int offset)
   | something_else -> raise (Json.error_ill_formed "players_by_rating" something_else)
 
 let player_info_of_json: Json.t -> data_request = function
@@ -55,6 +57,14 @@ let game_info_of_json: Json.t -> data_request = function
     ]) -> Game_info (Int64.of_int id)
   | something_else -> raise (Json.error_ill_formed "game_info" something_else)
 
+let games_by_date_of_json: Json.t -> data_request = function
+  | `Assoc([
+      ("limit", `Int(limit));
+      ("offset", `Int(offset));
+    ]) -> Games_by_date (Int64.of_int limit, Int64.of_int offset)
+  | something_else -> raise (Json.error_ill_formed "games_by_date" something_else)
+
+
 let data_request_of_json: Json.t -> data_request = function
   | `Assoc([
       ("data_request_type", `String(data_request_type));
@@ -64,6 +74,7 @@ let data_request_of_json: Json.t -> data_request = function
         | "player_info" -> player_info_of_json body
         | "clan_info" -> clan_info_of_json body
         | "game_info" -> game_info_of_json body
+        | "games_by_date" -> games_by_date_of_json body
         | something_else -> raise (UnknownDataRequest something_else)
       end
   | something_else -> raise (Json.error_ill_formed "data_request" something_else)
@@ -185,6 +196,11 @@ let json_of_data_request_response: data_request_response -> Json.t = function
           ("game", json_of_db_game game);
           ("participants", `List(List.map json_of_db_game_participant participants));
         ]));
+      ])
+  | Games_by_date games ->
+      `Assoc([
+        ("data_request_response_type", `String("games_by_date"));
+        ("data_request_response_content", `List(List.map json_of_db_game games));
       ])
 
 let json_of_registration_request_response: registration_request_response -> Json.t = function
