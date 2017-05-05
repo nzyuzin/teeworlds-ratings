@@ -18,3 +18,12 @@ Ideas for the matchmaking system
    requiring the players to save their personal game demo as evidence.
    Also we should reserve the right to ban and exclude anyone if we feel like there is a good reason and enough evidence that rules of good
    sportsmanship have been violated, even if there is no demo available to review.
+
+5) Clans.
+   Anyone can register a clan. However, this registration will require a validation, that is an agreement of 3 other players to join that clan. When a clan is validated, a clan leader can add/remove players from his clan by himself.
+
+   If a clan goes down to less than 4 players, validation is again required. (Motivation: only with 4 players you can play ctf2 clanwars, boring games do not count)
+
+   If a clan stays unvalidated for more than 30 days, it's removed from the active clans list and moved to history.
+
+   Every player has a clan history which expands upon player joining or leaving a clan.
