@@ -178,7 +178,8 @@ let handle_connection (conn: Network.connection) (db: string): unit =
   | Sqlite3.Error str -> report_error ("Database error: " ^ str)
   | UnknownPlayer name -> report_error ("Player with name " ^ name ^ " is not registered")
   | NotFound -> report_error "Requested entity is not found"
-  | UnknownMessageType str -> report_error ("Received message with unknown type: " ^ str) in
+  | UnknownMessageType str -> report_error ("Received message with unknown type: " ^ str)
+  | _ -> report_error "Internal server error" in
   let _ = flush out_conn in
   Network.close_connection conn
 
