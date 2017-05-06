@@ -3,6 +3,9 @@ open Db
 let select_game_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games where id = ?"
 
+let count_games_stmt =
+  "select count(*) as rows_count from games"
+
 let select_latest_games_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games order by game_date DESC limit(?) offset(?)"
 
@@ -34,6 +37,10 @@ let update_game_rating_change_stmt = "update game_players set rating_change = ? 
 let insert_game_player_stmt =
   "insert into game_players (game_id, player_id, score, team, rating_change, hammer_kills, gun_kills, shotgun_kills, grenade_kills, rifle_kills, deaths, suicides, flag_grabs, flag_captures, flag_returns, flag_carrier_kills) " ^
   "select ? as game_id, id as player_id, ? as score, ? as team, 0 as rating_change, ? as hammer_kills, ? as gun_kills, ? as shotgun_kills, ? as grenade_kills, ? as rifle_kills, ? as deaths, ? as suicides, ? as flag_grabs, ? as flag_captures, ? as flag_returns, ? as flag_carrier_kills from players where name = ?"
+
+let count_games () =
+  let s = prepare_stmt count_games_stmt in
+  count_of_row (Option.get (exec_select_single_row_stmt s))
 
 let select_game game_id =
   let s = prepare_bind_stmt select_game_stmt [Sqlite3.Data.INT game_id] in

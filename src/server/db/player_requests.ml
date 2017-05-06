@@ -2,6 +2,8 @@ open Db
 
 let insert_player_stmt = "insert into players (name, clan, rating, secret_key) values (?, ?, ?, ?)"
 
+let count_players_stmt = "select count(*) as rows_count from players"
+
 let select_player_stmt = "select name, clan, rating from players where name = ?"
 
 let select_player_by_id_stmt = "select name, clan, rating from players where id = ?"
@@ -35,6 +37,10 @@ let insert_player (player: player) =
   let _ = bind_values prepared_insert_stmt
     [Data.TEXT player.name; Data.TEXT player.clan; Data.INT (Int64.of_int 1500); Data.TEXT player.secret_key] in
   exec_insert_stmt prepared_insert_stmt
+
+let count_players (): int64 =
+  let s = prepare_stmt count_players_stmt in
+  count_of_row (Option.get (exec_select_single_row_stmt s))
 
 let select_player (player_name: string): player option =
   let prepared_select_stmt = prepare_stmt select_player_stmt in

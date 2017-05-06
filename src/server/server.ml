@@ -105,8 +105,10 @@ let process_teeworlds_message (msg: Json.t) (db: string): Teeworlds_message.serv
 let process_data_request (msg: External_messages.data_request) db: External_messages.data_request_response =
   let _ = Db.open_db db in
   let result = match msg with
-  | External_messages.Players_by_rating (limit, offset) -> External_messages.Players_by_rating
-      (Player_requests.select_players_by_rating limit offset)
+  | External_messages.Players_by_rating (limit, offset) ->
+      let players = Player_requests.select_players_by_rating limit offset in
+      let players_count = Player_requests.count_players () in
+      External_messages.Players_by_rating (players_count, players)
   | External_messages.Player_info name ->
       let p = Player_requests.select_player_with_secret name in
       begin match p with
@@ -138,8 +140,10 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
       let players = Game_requests.select_game_players id in
       let players_with_names = List.map attach_name players in
       External_messages.Game_info (game, players_with_names)
-  | External_messages.Games_by_date (limit, offset) -> External_messages.Games_by_date
-    (Game_requests.select_latest_games limit offset) in
+  | External_messages.Games_by_date (limit, offset) ->
+      let games = Game_requests.select_latest_games limit offset in
+      let games_count = Game_requests.count_games () in
+      External_messages.Games_by_date (games_count, games) in
   let _ = Db.close_db () in
   result
 

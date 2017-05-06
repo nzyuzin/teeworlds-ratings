@@ -1,6 +1,10 @@
 exception UnexpectedErrorCode of string
 exception UnexpectedDbData of string
 
+let count_of_row = function
+  | [|("rows_count", Sqlite3.Data.INT count)|] -> count
+  | _ -> raise (UnexpectedDbData "Unexpected result of count query")
+
 type named_row = (string * Sqlite3.Data.t) array
 
 let db_entity_of_row entity_constructor named_row filler_lambdas =

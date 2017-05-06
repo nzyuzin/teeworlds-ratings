@@ -18,11 +18,11 @@ type external_message =
   | Registration_request of registration_request
 
 type data_request_response =
-  | Players_by_rating of Db.player list
+  | Players_by_rating of int64 * Db.player list
   | Player_info of Db.player * (Db.player_stats * int64) * ((Db.game * int64) list)
   | Clan_info of Db.clan * (Db.player list)
   | Game_info of Db.game * ((Db.game_player * string) list)
-  | Games_by_date of Db.game list
+  | Games_by_date of int64 * Db.game list
 
 type registration_request_response =
   | Register
@@ -199,10 +199,13 @@ let json_of_db_game_participant: (Db.game_player * string) -> Json.t = let open 
       ])
 
 let json_of_data_request_response: data_request_response -> Json.t = function
-  | Players_by_rating players ->
+  | Players_by_rating (total_players, players) ->
       `Assoc([
         ("data_request_response_type", `String("players_by_rating"));
-        ("data_request_response_content", `List(List.map json_of_db_player players));
+        ("data_request_response_content", `Assoc([
+          ("total_players", wrap_int(total_players));
+          ("players", `List(List.map json_of_db_player players));
+        ]));
       ])
   | Player_info (player, (stats, total_games), games) ->
       `Assoc([
@@ -230,10 +233,13 @@ let json_of_data_request_response: data_request_response -> Json.t = function
           ("participants", `List(List.map json_of_db_game_participant participants));
         ]));
       ])
-  | Games_by_date games ->
+  | Games_by_date (total_games, games) ->
       `Assoc([
         ("data_request_response_type", `String("games_by_date"));
-        ("data_request_response_content", `List(List.map json_of_db_game games));
+        ("data_request_response_content", `Assoc([
+          ("total_games", wrap_int total_games);
+          ("games", `List(List.map json_of_db_game games));
+        ]));
       ])
 
 let json_of_registration_request_response: registration_request_response -> Json.t = function
