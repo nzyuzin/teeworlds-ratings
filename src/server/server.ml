@@ -75,7 +75,7 @@ let process_player_request pr clid db =
       end
   | Teeworlds_message.Player_stats name ->
       match Game_requests.select_player_stats name with
-      | Some (stats, total_games) -> let open Db in
+      | Some ({Db.stats = stats}, total_games) -> let open Db in
         "_cb_player_stats " ^
         (string_of_int clid) ^ " " ^
         (Int64.to_string total_games) ^ " " ^

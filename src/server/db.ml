@@ -73,12 +73,7 @@ let game_of_row named_row =
 let games_of_rows rows =
   List.map game_of_row rows
 
-type game_player = {
-  game_id: int64;
-  player_id: int64;
-  score: int64;
-  team: string;
-  rating_change: int64;
+type player_stats = {
   hammer_kills: int64;
   gun_kills: int64;
   shotgun_kills: int64;
@@ -92,12 +87,7 @@ type game_player = {
   flag_carrier_kills: int64;
 }
 
-let empty_game_player () = {
-  game_id = Int64.minus_one;
-  player_id = Int64.minus_one;
-  score = Int64.minus_one;
-  team = "";
-  rating_change = Int64.minus_one;
+let empty_stats () = {
   hammer_kills = Int64.minus_one;
   gun_kills = Int64.minus_one;
   shotgun_kills = Int64.minus_one;
@@ -111,6 +101,24 @@ let empty_game_player () = {
   flag_carrier_kills = Int64.minus_one;
 }
 
+type game_player = {
+  game_id: int64;
+  player_id: int64;
+  score: int64;
+  team: string;
+  rating_change: int64;
+  stats: player_stats;
+}
+
+let empty_game_player () = {
+  game_id = Int64.minus_one;
+  player_id = Int64.minus_one;
+  score = Int64.minus_one;
+  team = "";
+  rating_change = Int64.minus_one;
+  stats = empty_stats ();
+}
+
 let game_player_of_row_e named_row additional_cols = let open Sqlite3.Data in
   let fill_game_player gp col = match col with
   | ("game_id", INT game_id) -> {gp with game_id = game_id}
@@ -118,17 +126,17 @@ let game_player_of_row_e named_row additional_cols = let open Sqlite3.Data in
   | ("score", INT score) -> {gp with score = score}
   | ("team", TEXT team) -> {gp with team = team}
   | ("rating_change", INT rating_change) -> {gp with rating_change = rating_change}
-  | ("hammer_kills", INT hammer_kills) -> {gp with hammer_kills = hammer_kills}
-  | ("gun_kills", INT gun_kills) -> {gp with gun_kills = gun_kills}
-  | ("shotgun_kills", INT shotgun_kills) -> {gp with shotgun_kills = shotgun_kills}
-  | ("grenade_kills", INT grenade_kills) -> {gp with grenade_kills = grenade_kills}
-  | ("rifle_kills", INT rifle_kills) -> {gp with rifle_kills = rifle_kills}
-  | ("deaths", INT deaths) -> {gp with deaths = deaths}
-  | ("suicides", INT suicides) -> {gp with suicides = suicides}
-  | ("flag_grabs", INT flag_grabs) -> {gp with flag_grabs = flag_grabs}
-  | ("flag_captures", INT flag_captures) -> {gp with flag_captures = flag_captures}
-  | ("flag_returns", INT flag_returns) -> {gp with flag_returns = flag_returns}
-  | ("flag_carrier_kills", INT flag_carrier_kills) -> {gp with flag_carrier_kills = flag_carrier_kills}
+  | ("hammer_kills", INT hammer_kills) -> {gp with stats = {gp.stats with hammer_kills = hammer_kills}}
+  | ("gun_kills", INT gun_kills) -> {gp with stats = {gp.stats with gun_kills = gun_kills}}
+  | ("shotgun_kills", INT shotgun_kills) -> {gp with stats = {gp.stats with shotgun_kills = shotgun_kills}}
+  | ("grenade_kills", INT grenade_kills) -> {gp with stats = {gp.stats with grenade_kills = grenade_kills}}
+  | ("rifle_kills", INT rifle_kills) -> {gp with stats = {gp.stats with rifle_kills = rifle_kills}}
+  | ("deaths", INT deaths) -> {gp with stats = {gp.stats with deaths = deaths}}
+  | ("suicides", INT suicides) -> {gp with stats = {gp.stats with suicides = suicides}}
+  | ("flag_grabs", INT flag_grabs) -> {gp with stats = {gp.stats with flag_grabs = flag_grabs}}
+  | ("flag_captures", INT flag_captures) -> {gp with stats = {gp.stats with flag_captures = flag_captures}}
+  | ("flag_returns", INT flag_returns) -> {gp with stats = {gp.stats with flag_returns = flag_returns}}
+  | ("flag_carrier_kills", INT flag_carrier_kills) -> {gp with stats = {gp.stats with flag_carrier_kills = flag_carrier_kills}}
   | _ -> gp in
   db_entity_of_row empty_game_player named_row [fill_game_player; additional_cols]
 
@@ -140,7 +148,6 @@ let game_player_of_row named_row =
     raise (UnexpectedDbData "Retrieved game_player doesn't have player_id!")
   else
     gp
-
 
 let game_players_of_rows rows =
   List.map game_player_of_row rows
