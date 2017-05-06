@@ -37,15 +37,43 @@ let of_message : message -> t = function
       ("message_content", `String(str));
     ])
 
+let json_of_stats: Gameinfo.player_stats -> t = let open Gameinfo in function
+  | {
+      hammer_kills = hammer_kills;
+      gun_kills = gun_kills;
+      shotgun_kills = shotgun_kills;
+      grenade_kills = grenade_kills;
+      rifle_kills = rifle_kills;
+      deaths = deaths;
+      suicides = suicides;
+      flag_grabs = flag_grabs;
+      flag_captures = flag_captures;
+      flag_returns = flag_returns;
+      flag_carrier_kills = flag_carrier_kills;
+    } -> `Assoc([
+        ("hammer_kills", `Int(hammer_kills));
+        ("gun_kills", `Int(gun_kills));
+        ("shotgun_kills", `Int(shotgun_kills));
+        ("grenade_kills", `Int(grenade_kills));
+        ("rifle_kills", `Int(rifle_kills));
+        ("deaths", `Int(deaths));
+        ("suicides", `Int(suicides));
+        ("flag_grabs", `Int(flag_grabs));
+        ("flag_captures", `Int(flag_captures));
+        ("flag_returns", `Int(flag_returns));
+        ("flag_carrier_kills", `Int(flag_carrier_kills));
+      ])
+
 let rec json_of_players (players: Gameinfo.player list) =
   match players with
   | [] -> []
-  | player :: rest -> let open Yojson.Basic in
+  | player :: rest -> let open Yojson.Basic in let open Gameinfo in
     `Assoc([
-      ("name", `String(player.Gameinfo.name));
-      ("clan", `String(player.Gameinfo.clan));
-      ("score", `Int(player.Gameinfo.score));
-      ("team", `String(Gameinfo.string_of_team(player.Gameinfo.team)))
+      ("name", `String(player.name));
+      ("clan", `String(player.clan));
+      ("score", `Int(player.score));
+      ("team", `String(string_of_team(player.team)));
+      ("stats", json_of_stats player.stats);
     ]) :: (json_of_players rest)
 
 let json_of_gameinfo (gameinfo: Gameinfo.gameinfo) =
@@ -57,6 +85,34 @@ let json_of_gameinfo (gameinfo: Gameinfo.gameinfo) =
     ("players", `List(json_of_players gameinfo.Gameinfo.players))
   ])
 
+let stats_of_json: t -> Gameinfo.player_stats = let open Gameinfo in function
+  | `Assoc([
+        ("hammer_kills", `Int(hammer_kills));
+        ("gun_kills", `Int(gun_kills));
+        ("shotgun_kills", `Int(shotgun_kills));
+        ("grenade_kills", `Int(grenade_kills));
+        ("rifle_kills", `Int(rifle_kills));
+        ("deaths", `Int(deaths));
+        ("suicides", `Int(suicides));
+        ("flag_grabs", `Int(flag_grabs));
+        ("flag_captures", `Int(flag_captures));
+        ("flag_returns", `Int(flag_returns));
+        ("flag_carrier_kills", `Int(flag_carrier_kills));
+      ]) -> {
+          hammer_kills = hammer_kills;
+          gun_kills = gun_kills;
+          shotgun_kills = shotgun_kills;
+          grenade_kills = grenade_kills;
+          rifle_kills = rifle_kills;
+          deaths = deaths;
+          suicides = suicides;
+          flag_grabs = flag_grabs;
+          flag_captures = flag_captures;
+          flag_returns = flag_returns;
+          flag_carrier_kills = flag_carrier_kills;
+        }
+  | json -> raise (error_ill_formed "player_stats" json)
+
 let rec players_of_json (players: Yojson.Basic.json list): Gameinfo.player list =
   match players with
   | [] -> []
@@ -64,13 +120,16 @@ let rec players_of_json (players: Yojson.Basic.json list): Gameinfo.player list 
       ("name", `String(nm));
       ("clan", `String(cn));
       ("score", `Int(scr));
-      ("team", `String(tm))
+      ("team", `String(tm));
+      ("stats", stats_json);
     ]) :: rest ->
+      let open Gameinfo in
       let player = {
-        Gameinfo.name = nm;
-        Gameinfo.clan = cn;
-        Gameinfo.score = scr;
-        Gameinfo.team = Gameinfo.team_of_string tm
+        name = nm;
+        clan = cn;
+        score = scr;
+        team = team_of_string tm;
+        stats = stats_of_json stats_json;
       } in
       player :: (players_of_json rest)
   | json :: rest -> raise (error_ill_formed "player" json)

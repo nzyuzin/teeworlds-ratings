@@ -1,9 +1,8 @@
 Gameinfo
-Gametype: rCTF
-Map: ctf2
-Gametime: 3000
+Gametype: rTDM
+Map: dm1
+Gametime: 10
 Result: RED
 Players:
-"Captain JohnDoe" "Tees" 99 RED
-"MightyTee" "Bad \"Tees\"" 10 BLUE
-"IamNewHere" "tee" 1 BLUE
+"Shiki" "[POLICE]" 1 RED 0 0 1 0 0 0 0 0 0 0 0
+"ShikiShiki" "" 0 BLUE 0 0 0 0 0 1 0 0 0 0 0

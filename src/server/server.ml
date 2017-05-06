@@ -172,7 +172,8 @@ let handle_connection (conn: Network.connection) (db: string): unit =
     let msg = Json.from_string msg_line in
     let response = process_message msg db in
     let _ = Json.to_channel out_conn response in
-    output_char out_conn '\n'
+    let _ = output_char out_conn '\n' in
+    flush out_conn
   with
   | Failure str -> report_error ("Failure: " ^ str)
   | Sqlite3.Error str -> report_error ("Database error: " ^ str)
@@ -180,7 +181,6 @@ let handle_connection (conn: Network.connection) (db: string): unit =
   | NotFound -> report_error "Requested entity is not found"
   | UnknownMessageType str -> report_error ("Received message with unknown type: " ^ str)
   | _ -> report_error "Internal server error" in
-  let _ = flush out_conn in
   Network.close_connection conn
 
 let run port db =

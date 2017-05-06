@@ -1,11 +1,5 @@
 open Db
 
-let latest_game_of_row = let open Sqlite3.Data in function
-  | [|INT id; TEXT gt; TEXT mp; INT gtime; TEXT res; TEXT date; INT rating_change|] ->
-      ({game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date}, rating_change)
-  | anything_else ->
-      raise (UnexpectedDbData "Retrieved game row doesn't match the expected pattern!")
-
 let select_game_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games where id = ?"
 
@@ -25,8 +19,8 @@ let insert_game_stmt =
 let update_game_rating_change_stmt = "update game_players set rating_change = ? where game_id = ? and player_id = (select id from players where name = ? limit(1))"
 
 let insert_game_player_stmt =
-  "insert into game_players (game_id, player_id, score, team, rating_change) " ^
-  "select ? as game_id, id as player_id, ? as score, ? as team, 0 as rating_change from players where name = ?"
+  "insert into game_players (game_id, player_id, score, team, rating_change, hammer_kills, gun_kills, shotgun_kills, grenade_kills, rifle_kills, deaths, suicides, flag_grabs, flag_captures, flag_returns, flag_carrier_kills) " ^
+  "select ? as game_id, id as player_id, ? as score, ? as team, 0 as rating_change, ? as hammer_kills, ? as gun_kills, ? as shotgun_kills, ? as grenade_kills, ? as rifle_kills, ? as deaths, ? as suicides, ? as flag_grabs, ? as flag_captures, ? as flag_returns, ? as flag_carrier_kills from players where name = ?"
 
 let select_game game_id =
   let s = prepare_bind_stmt select_game_stmt [Sqlite3.Data.INT game_id] in
@@ -63,14 +57,24 @@ let insert_game (game: Gameinfo.gameinfo) =
   exec_insert_stmt prepared_insert_stmt
 
 let insert_game_player (player: Gameinfo.player) game_id =
-  let open Sqlite3 in
-  let prepared_insert_stmt = prepare_stmt insert_game_player_stmt in
-  let team = Gameinfo.string_of_team player.Gameinfo.team in
-  let _ = bind_values prepared_insert_stmt [
-    Data.INT game_id;
-    Data.INT (Int64.of_int player.Gameinfo.score);
-    Data.TEXT team;
-    Data.TEXT player.Gameinfo.name
+  let open Sqlite3.Data in let open Gameinfo in
+  let team = string_of_team player.team in
+  let prepared_insert_stmt = prepare_bind_stmt insert_game_player_stmt [
+    INT game_id;
+    INT (Int64.of_int player.score);
+    TEXT team;
+    INT (Int64.of_int player.stats.hammer_kills);
+    INT (Int64.of_int player.stats.gun_kills);
+    INT (Int64.of_int player.stats.shotgun_kills);
+    INT (Int64.of_int player.stats.grenade_kills);
+    INT (Int64.of_int player.stats.rifle_kills);
+    INT (Int64.of_int player.stats.deaths);
+    INT (Int64.of_int player.stats.suicides);
+    INT (Int64.of_int player.stats.flag_grabs);
+    INT (Int64.of_int player.stats.flag_captures);
+    INT (Int64.of_int player.stats.flag_returns);
+    INT (Int64.of_int player.stats.flag_carrier_kills);
+    TEXT player.name
   ] in
   exec_insert_stmt prepared_insert_stmt
 

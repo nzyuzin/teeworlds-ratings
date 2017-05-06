@@ -1,8 +1,22 @@
 let until_char str chr from_pos =
-  String.sub str from_pos ((String.index_from str from_pos chr) - from_pos)
+  let end_pos = if String.contains_from str from_pos chr then
+    String.index_from str from_pos chr
+  else
+    String.length str in
+  String.sub str from_pos (end_pos - from_pos)
 
 let until_space str from_pos =
   until_char str ' ' from_pos
+
+let list_of_ints str from_pos: int list =
+  let len = String.length str in
+  let rec inner prev =
+    if prev >= len || (prev + 1 < len && str.[prev + 1] <> ' ') then
+      []
+    else
+      let i = until_space str prev in
+      (int_of_string i) :: (inner (prev + (String.length i) + 1)) in
+  inner from_pos
 
 let read_quoted_word str start_pos =
   let rec find_matching_quote pos =
