@@ -1,0 +1,11 @@
+S src/base
+S src/client
+S src/server
+S src/server/db
+
+B _build/src/base
+B _build/src/client
+B _build/src/server
+B _build/src/server/db
+
+PKG sqlite3 yojson extlib netclient config-file
