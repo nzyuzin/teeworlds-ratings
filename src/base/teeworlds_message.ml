@@ -29,10 +29,11 @@ exception UnknownMessageType of string
 
 type player_request =
   | Player_rank of string
+  | Player_stats of string
   | Top5_players
   | Login of string * string
 
-type message =
+type t =
   | Gameinfo of Gameinfo.gameinfo
   | Player_request of player_request * int
 
@@ -44,6 +45,7 @@ let string_of_player_request = function
   | Player_rank _ -> "Player_rank"
   | Top5_players -> "Top5_players"
   | Login (_, _) -> "Login"
+  | Player_stats _ -> "Player_stats"
 
 let parse_player_rank msg =
   let player_line = Stream.next msg in
@@ -56,6 +58,11 @@ let parse_login msg =
   let secret_key_line = Stream.next msg in
   Login (player_name, secret_key_line)
 
+let parse_stats msg =
+  let player_line = Stream.next msg in
+  let player_name = Parser.read_quoted_word player_line 0 in
+  Player_stats (Parser.unguard_quotes player_name)
+
 let parse_player_request msg =
   let player_request_type_str = Stream.next msg in
   let client_id_str = Stream.next msg in
@@ -65,6 +72,7 @@ let parse_player_request msg =
     | "Player_rank" -> parse_player_rank msg
     | "Top5_players" -> Top5_players
     | "Login" -> parse_login msg
+    | "Player_stats" -> parse_stats msg
     | other_type -> raise (UnknownMessageType other_type)
   in
   Player_request (parsed_player_request, client_id)

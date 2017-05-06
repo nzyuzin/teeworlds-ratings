@@ -12,6 +12,19 @@ let select_game_participants_stmt =
 let select_latest_games_by_player_stmt =
   "select games.id, gametype, map, game_time, case when game_result = team then 'Win' else 'Loss' end as game_result, game_date, rating_change from games, game_players, players where game_id = games.id and player_id = players.id and players.name = ? order by games.game_date DESC limit(?)"
 
+let select_players_of_game_by_team_stmt =
+  "select " ^
+  "  players.name, players.clan, players.rating " ^
+  "from " ^
+  "  players inner join game_players on players.id = game_players.player_id " ^
+  "where " ^
+  "  game_players.game_id = ? and team = ?"
+
+let select_player_stats_stmt =
+  "select player_id, count(*) as total_games, sum(hammer_kills) as hammer_kills, sum(gun_kills) as gun_kills, sum(shotgun_kills) as shotgun_kills, sum(grenade_kills) as grenade_kills, sum(rifle_kills) as rifle_kills, sum(deaths) as deaths, sum(suicides) as suicides, sum(flag_grabs) as flag_grabs, sum(flag_captures) as flag_captures, sum(flag_returns) as flag_returns, sum(flag_carrier_kills) as flag_carrier_kills " ^
+  "from game_players inner join players on players.id = game_players.player_id " ^
+  "where players.name = ?"
+
 let insert_game_stmt =
   "insert into games (gametype, map, game_time, game_result, game_date) " ^
   "values (?, ?, ?, ?, datetime('now'))"
@@ -31,7 +44,7 @@ let select_latest_games limit offset =
     [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
   List.map game_of_row (exec_select_stmt s)
 
-let select_game_participants game_id: Db.game_player list =
+let select_game_players game_id: Db.game_player list =
   let s = prepare_bind_stmt select_game_participants_stmt [Sqlite3.Data.INT game_id] in
   Db.game_players_of_rows (exec_select_stmt s)
 
@@ -46,6 +59,26 @@ let select_latest_games_by_player player_name limit =
     let game = game_of_row_e r fill_rating_change in (* mutate rating change ref *)
     (game, !rating_change) in
   List.map game_with_rating_change (exec_select_stmt s)
+
+let select_players_of_game_by_team (game_id: int64) (team: Gameinfo.team): player list =
+  let prepared_stmt = prepare_stmt select_players_of_game_by_team_stmt in
+  let _ = bind_values prepared_stmt [
+    Sqlite3.Data.INT game_id;
+    Sqlite3.Data.TEXT (Gameinfo.string_of_team team)
+  ] in
+  let rows = exec_select_stmt prepared_stmt in
+  players_of_rows rows
+
+let select_player_stats player_name: (Db.game_player * int64) option =
+  let total_games = ref Int64.minus_one in
+  let fill_total_games gp c = match c with
+  | ("total_games", Sqlite3.Data.INT tg) -> total_games := tg; gp
+  | _ -> gp in
+  let prepared_stmt = prepare_bind_stmt select_player_stats_stmt [Sqlite3.Data.TEXT player_name] in
+  let player_stats_with_total_games r =
+    let gp = game_player_of_row_e r fill_total_games in
+    (gp, !total_games) in
+  Option.map player_stats_with_total_games (exec_select_single_row_stmt prepared_stmt)
 
 let insert_game (game: Gameinfo.gameinfo) =
   let open Sqlite3 in
@@ -80,31 +113,6 @@ let insert_game_player (player: Gameinfo.player) game_id =
     TEXT player.name
   ] in
   exec_insert_stmt prepared_insert_stmt
-
-let select_game_players_stmt =
-  "select " ^
-  "  players.name, players.clan, players.rating " ^
-  "from " ^
-  "  players inner join game_players on players.id = game_players.player_id " ^
-  "where " ^
-  "  game_players.game_id = ?"
-
-let select_game_players_by_team_stmt = select_game_players_stmt ^ " and team = ?"
-
-let select_game_players (game_id: int64): player list =
-  let prepared_stmt = prepare_stmt select_game_players_stmt in
-  let _ = bind_values prepared_stmt [Sqlite3.Data.INT game_id] in
-  let rows = exec_select_stmt prepared_stmt in
-  players_of_rows rows
-
-let select_game_players_by_team (game_id: int64) (team: Gameinfo.team): player list =
-  let prepared_stmt = prepare_stmt select_game_players_by_team_stmt in
-  let _ = bind_values prepared_stmt [
-    Sqlite3.Data.INT game_id;
-    Sqlite3.Data.TEXT (Gameinfo.string_of_team team)
-  ] in
-  let rows = exec_select_stmt prepared_stmt in
-  players_of_rows rows
 
 let update_rating_change (game_id: int64) (player_name: string) (rating_change: int64) =
   let open Sqlite3 in

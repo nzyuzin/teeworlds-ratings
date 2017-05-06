@@ -134,7 +134,7 @@ let rec players_of_json (players: Yojson.Basic.json list): Gameinfo.player list 
       player :: (players_of_json rest)
   | json :: rest -> raise (error_ill_formed "player" json)
 
-let gameinfo_of_json (gameinfo: Yojson.Basic.json): Teeworlds_message.message =
+let gameinfo_of_json (gameinfo: Yojson.Basic.json): Teeworlds_message.t =
   match gameinfo with
   | `Assoc([
       ("gametype", `String(gt));
@@ -166,6 +166,9 @@ let json_of_player_request: Teeworlds_message.player_request -> Yojson.Basic.jso
       ("player_name", `String(name));
       ("secret_key", `String(secret_key));
     ])
+  | Teeworlds_message.Player_stats name -> `Assoc([
+      ("player_name", `String(name));
+    ])
 
 let login_of_json: t -> Teeworlds_message.player_request = function
   | `Assoc([
@@ -174,7 +177,13 @@ let login_of_json: t -> Teeworlds_message.player_request = function
     ]) -> Teeworlds_message.Login (name, secret_key)
   | something_else -> raise (error_ill_formed "login" something_else)
 
-let player_request_of_json: Yojson.Basic.json -> Teeworlds_message.message = function
+let stats_of_json: t -> Teeworlds_message.player_request = function
+  | `Assoc([
+      ("player_name", `String(name));
+    ]) -> Teeworlds_message.Player_stats name
+  | something_else -> raise (error_ill_formed "player_stats" something_else)
+
+let player_request_of_json: Yojson.Basic.json -> Teeworlds_message.t = function
   | `Assoc([
       ("player_request_type", `String(player_request_type));
       ("client_id", `Int(client_id));
@@ -187,11 +196,13 @@ let player_request_of_json: Yojson.Basic.json -> Teeworlds_message.message = fun
             Teeworlds_message.Player_request (Teeworlds_message.Top5_players, client_id)
         | "Login" ->
             Teeworlds_message.Player_request (login_of_json rest, client_id)
+        | "Player_stats" ->
+            Teeworlds_message.Player_request (stats_of_json rest, client_id)
         | something_else -> raise (error_unknown_value "player request type" something_else)
       end
   | something_else -> raise (error_ill_formed "player_request" something_else)
 
-let json_of_teeworlds_message: Teeworlds_message.message -> Yojson.Basic.json = function
+let json_of_teeworlds_message: Teeworlds_message.t -> Yojson.Basic.json = function
   | Teeworlds_message.Gameinfo gameinfo ->
      `Assoc([
         ("teeworlds_message_type", `String("Gameinfo"));
@@ -209,7 +220,7 @@ let json_of_teeworlds_message: Teeworlds_message.message -> Yojson.Basic.json = 
           ]));
       ])
 
-let teeworlds_message_of_json (json: Yojson.Basic.json): Teeworlds_message.message =
+let teeworlds_message_of_json (json: Yojson.Basic.json): Teeworlds_message.t =
   match json with
   | `Assoc([
       ("teeworlds_message_type", `String(message_type));

@@ -67,11 +67,30 @@ let process_player_request pr clid db =
     end
   | Teeworlds_message.Top5_players -> report_top5 clid
   | Teeworlds_message.Login (name, secret) ->
-      let player = Player_requests.select_player_with_secret name in
-      match player with
-      | Some p when p.Db.secret_key = secret ->
-          "_cb_auth_player " ^ (string_of_int clid) ^ " \"" ^ (String.escaped name) ^ "\""
-      | _ -> "_cb_bad_auth " ^ (string_of_int clid) in
+      let player = Player_requests.select_player_with_secret name in begin
+        match player with
+        | Some p when p.Db.secret_key = secret ->
+            "_cb_auth_player " ^ (string_of_int clid) ^ " \"" ^ (String.escaped name) ^ "\""
+        | _ -> "_cb_bad_auth " ^ (string_of_int clid)
+      end
+  | Teeworlds_message.Player_stats name ->
+      match Game_requests.select_player_stats name with
+      | Some (stats, total_games) -> let open Db in
+        "_cb_player_stats " ^
+        (string_of_int clid) ^ " " ^
+        (Int64.to_string total_games) ^ " " ^
+        (Int64.to_string stats.hammer_kills) ^ " " ^
+        (Int64.to_string stats.gun_kills) ^ " " ^
+        (Int64.to_string stats.shotgun_kills) ^ " " ^
+        (Int64.to_string stats.grenade_kills) ^ " " ^
+        (Int64.to_string stats.rifle_kills) ^ " " ^
+        (Int64.to_string stats.deaths) ^ " " ^
+        (Int64.to_string stats.suicides) ^ " " ^
+        (Int64.to_string stats.flag_grabs) ^ " " ^
+        (Int64.to_string stats.flag_returns) ^ " " ^
+        (Int64.to_string stats.flag_captures) ^ " " ^
+        (Int64.to_string stats.flag_carrier_kills)
+      | None -> raise NotFound in
   let _ = Db.close_db () in
   callback_command
 
@@ -114,7 +133,7 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
           | None -> raise NotFound
           | Some gm -> gm
         end in
-      let players = Game_requests.select_game_participants id in
+      let players = Game_requests.select_game_players id in
       let players_with_names = List.map attach_name players in
       External_messages.Game_info (game, players_with_names)
   | External_messages.Games_by_date (limit, offset) -> External_messages.Games_by_date
@@ -162,26 +181,28 @@ let process_message (msg: Json.t) (db: string): Json.t =
 
 let handle_connection (conn: Network.connection) (db: string): unit =
   let out_conn = Network.out_connection conn in
-  let report_error str =
+  let report_error str e =
     let error_message = Json.of_message (Json.Error str) in
     let _ = Json.to_channel out_conn error_message in
     let _ = output_char out_conn '\n' in
-    flush out_conn in
-  let _ = try
+    let _ = flush out_conn in
+    let _ = Network.close_connection conn in
+    raise e in
+  try
     let msg_line = input_line (Network.in_connection conn) in
     let msg = Json.from_string msg_line in
     let response = process_message msg db in
     let _ = Json.to_channel out_conn response in
     let _ = output_char out_conn '\n' in
-    flush out_conn
+    let _ = flush out_conn in
+    Network.close_connection conn
   with
-  | Failure str -> report_error ("Failure: " ^ str)
-  | Sqlite3.Error str -> report_error ("Database error: " ^ str)
-  | UnknownPlayer name -> report_error ("Player with name " ^ name ^ " is not registered")
-  | NotFound -> report_error "Requested entity is not found"
-  | UnknownMessageType str -> report_error ("Received message with unknown type: " ^ str)
-  | _ -> report_error "Internal server error" in
-  Network.close_connection conn
+  | Failure str as e -> report_error ("Failure: " ^ str) e
+  | Sqlite3.Error str as e -> report_error ("Database error: " ^ str) e
+  | UnknownPlayer name as e -> report_error ("Player with name " ^ name ^ " is not registered") e
+  | NotFound as e -> report_error "Requested entity is not found" e
+  | UnknownMessageType str as e -> report_error ("Received message with unknown type: " ^ str) e
+  | e -> report_error "Internal server error" e
 
 let run port db =
   let addr = Unix.ADDR_INET (Unix.inet_addr_of_string "127.0.0.1", port) in
