@@ -19,7 +19,7 @@ type external_message =
 
 type data_request_response =
   | Players_by_rating of Db.player list
-  | Player_info of Db.player * ((Db.game * int64) list)
+  | Player_info of Db.player * (Db.player_stats * int64) * ((Db.game * int64) list)
   | Clan_info of Db.clan * (Db.player list)
   | Game_info of Db.game * ((Db.game_player * string) list)
   | Games_by_date of Db.game list
@@ -31,6 +31,9 @@ type registration_request_response =
 type external_message_response =
   | Data_request_response of data_request_response
   | Registration_request_response of registration_request_response
+
+let wrap_int (i: int64) =
+  `Int(Int64.to_int i)
 
 let players_by_rating_of_json: Json.t -> data_request = function
   | `Assoc([
@@ -153,19 +156,47 @@ let json_of_db_player_game: (Db.game * int64) -> Json.t = let open Db in functio
         ("rating_change", `Int(Int64.to_int rating_change));
       ])
 
+let json_of_player_stats: Db.player_stats -> Json.t = let open Db in function
+  | {
+      hammer_kills = hammer_kills;
+      gun_kills = gun_kills;
+      shotgun_kills = shotgun_kills;
+      grenade_kills = grenade_kills;
+      rifle_kills = rifle_kills;
+      deaths = deaths;
+      suicides = suicides;
+      flag_grabs = flag_grabs;
+      flag_captures = flag_captures;
+      flag_returns = flag_returns;
+      flag_carrier_kills = flag_carrier_kills;
+    } -> `Assoc([
+        ("hammer_kills", wrap_int(hammer_kills));
+        ("gun_kills", wrap_int(gun_kills));
+        ("shotgun_kills", wrap_int(shotgun_kills));
+        ("grenade_kills", wrap_int(grenade_kills));
+        ("rifle_kills", wrap_int(rifle_kills));
+        ("deaths", wrap_int(deaths));
+        ("suicides", wrap_int(suicides));
+        ("flag_grabs", wrap_int(flag_grabs));
+        ("flag_captures", wrap_int(flag_captures));
+        ("flag_returns", wrap_int(flag_returns));
+        ("flag_carrier_kills", wrap_int(flag_carrier_kills));
+      ])
+
 let json_of_db_game_participant: (Db.game_player * string) -> Json.t = let open Db in function
   | ({ game_id = _;
       player_id = _;
       score = scr;
       team = tm;
       rating_change = rchng;
+      stats = stats;
     }, player_name) -> `Assoc([
         ("player_name", `String(player_name));
-        ("score", `Int(Int64.to_int scr));
+        ("score", wrap_int(scr));
         ("team", `String(tm));
-        ("rating_change", `Int(Int64.to_int rchng));
+        ("rating_change", wrap_int(rchng));
+        ("stats", json_of_player_stats stats);
       ])
-
 
 let json_of_data_request_response: data_request_response -> Json.t = function
   | Players_by_rating players ->
@@ -173,11 +204,13 @@ let json_of_data_request_response: data_request_response -> Json.t = function
         ("data_request_response_type", `String("players_by_rating"));
         ("data_request_response_content", `List(List.map json_of_db_player players));
       ])
-  | Player_info (player, games) ->
+  | Player_info (player, (stats, total_games), games) ->
       `Assoc([
         ("data_request_response_type", `String("player_info"));
         ("data_request_response_content", `Assoc([
           ("player", json_of_db_player player);
+          ("stats", json_of_player_stats stats);
+          ("total_games", wrap_int(total_games));
           ("games", `List(List.map json_of_db_player_game games));
         ]));
       ])

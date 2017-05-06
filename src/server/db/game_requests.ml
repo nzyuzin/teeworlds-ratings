@@ -7,7 +7,7 @@ let select_latest_games_stmt =
   "select id, gametype, map, game_time, game_result, game_date from games order by game_date DESC limit(?) offset(?)"
 
 let select_game_participants_stmt =
-  "select game_id, player_id, score, team, rating_change from game_players where game_id = ?"
+  "select game_id, player_id, score, team, rating_change, hammer_kills, gun_kills, shotgun_kills, grenade_kills, rifle_kills, deaths, suicides, flag_grabs, flag_captures, flag_returns, flag_carrier_kills from game_players where game_id = ?"
 
 let select_latest_games_by_player_stmt =
   "select games.id, gametype, map, game_time, case when game_result = team then 'Win' else 'Loss' end as game_result, game_date, rating_change from games, game_players, players where game_id = games.id and player_id = players.id and players.name = ? order by games.game_date DESC limit(?)"

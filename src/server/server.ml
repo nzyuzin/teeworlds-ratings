@@ -112,7 +112,9 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
       begin match p with
         | Some player ->
           let games = Game_requests.select_latest_games_by_player name 10 in
-          External_messages.Player_info (player, games)
+          let ({Db.stats = stats}, total_games) =
+            Option.get (Game_requests.select_player_stats name) in
+          External_messages.Player_info (player, (stats, total_games), games)
         | None -> raise NotFound
       end
   | External_messages.Clan_info name ->
