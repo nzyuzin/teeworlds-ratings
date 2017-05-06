@@ -7,7 +7,7 @@ Works with https://github.com/nzyuzin/rteeworlds rCTF game type.
 Dependencies
 ------------
 
-ocamlfind ocamlc sqlite3
+ocamlc opam ocamlfind ocamlbuild sqlite3
 
 Opam packages:
 yojson extlib sqlite3 ocamlnet config-file

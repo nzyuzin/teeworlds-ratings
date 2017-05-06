@@ -1,8 +1,6 @@
+_build/
+
 *.swp
-*.cmi
-*.cmo
-*.cmx
-*.o
 rctf.db
 teeworlds_ratings
 teeworlds_ratings.conf

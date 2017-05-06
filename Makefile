@@ -1,16 +1,13 @@
-COMPILER = ocamlc
-BASE_PACKAGES = -linkpkg -package yojson -package str -package extlib
-CLIENT_PACKAGES = $(BASE_PACKAGES) -package netclient -package config-file
-SERVER_PACKAGES = $(BASE_PACKAGES) -package sqlite3 -package unix
-BASE_DIR = ./src/base
-CLIENT_DIR = ./src/client
-SERVER_DIR = ./src/server
-SERVER_DB_REQUESTS_DIR = ./src/server/db
-BASE_SOURCES = $(BASE_DIR)/parser.ml $(BASE_DIR)/gameinfo.ml $(BASE_DIR)/network.ml $(BASE_DIR)/teeworlds_message.ml $(BASE_DIR)/json.ml
-CLIENT_SOURCES = $(CLIENT_DIR)/teeworlds_econ.ml $(CLIENT_DIR)/client.ml $(CLIENT_DIR)/main.ml
-SERVER_SOURCES = $(SERVER_DIR)/db.ml $(SERVER_DB_REQUESTS_DIR)/clan_requests.ml $(SERVER_DB_REQUESTS_DIR)/player_requests.ml $(SERVER_DB_REQUESTS_DIR)/game_requests.ml $(SERVER_DIR)/external_messages.ml $(SERVER_DIR)/rating.ml $(SERVER_DIR)/server.ml $(SERVER_DIR)/main.ml
-BUILD_CLIENT = ocamlfind $(COMPILER) $(CLIENT_PACKAGES) -I $(BASE_DIR) -I $(CLIENT_DIR)
-BUILD_SERVER = ocamlfind $(COMPILER) $(SERVER_PACKAGES) -I $(BASE_DIR) -I $(SERVER_DIR) -I $(SERVER_DB_REQUESTS_DIR)
+OCB = ocamlbuild
+BASE_INCLUDES = -I 'src/base'
+CLIENT_INCLUDES = -I 'src/client'
+SERVER_INCLUDES = -I 'src/server' -I 'src/server/db'
+BASE_PACKAGES = -pkg yojson -pkg extlib
+CLIENT_PACKAGES = $(BASE_PACKAGES) -pkg netclient -pkg config-file
+SERVER_PACKAGES = $(BASE_PACKAGES) -pkg sqlite3 -pkg unix -pkg str
+BASE_FLAGS = -use-ocamlfind -I 'src/base'
+CLIENT_FLAGS = $(BASE_FLAGS) $(CLIENT_INCLUDES) $(CLIENT_PACKAGES)
+SERVER_FLAGS = $(BASE_FLAGS) $(SERVER_INCLUDES) $(SERVER_PACKAGES)
 CLIENT_EXECUTABLE = teeworlds_ratings
 SERVER_EXECUTABLE = teeworlds_ratings_srv
 
@@ -21,19 +18,19 @@ all: client_release server_release
 debug: client_debug server_debug
 
 client_release:
-	$(BUILD_CLIENT) -o $(CLIENT_EXECUTABLE) $(BASE_SOURCES) $(CLIENT_SOURCES)
+	$(OCB) $(CLIENT_FLAGS) 'main.native' && mv main.native $(CLIENT_EXECUTABLE)
 
 client_debug:
-	$(BUILD_CLIENT) -g -o $(CLIENT_EXECUTABLE) $(BASE_SOURCES) $(CLIENT_SOURCES)
+	$(OCB) $(CLIENT_FLAGS) -tag debug 'main.byte' && mv main.byte $(CLIENT_EXECUTABLE)
 
 server_release:
-	$(BUILD_SERVER) -o $(SERVER_EXECUTABLE) $(BASE_SOURCES) $(SERVER_SOURCES)
+	$(OCB) $(SERVER_FLAGS) 'main.native' && mv main.native $(SERVER_EXECUTABLE)
 
 server_debug:
-	$(BUILD_SERVER) -g -o $(SERVER_EXECUTABLE) $(BASE_SOURCES) $(SERVER_SOURCES)
+	$(OCB) $(SERVER_FLAGS) -tag debug 'main.byte' && mv main.byte $(SERVER_EXECUTABLE)
 
 db_setup:
 	$(shell tools/db_setup.sh)
 
 clean:
-	rm -f $(CLIENT_EXECUTABLE) $(SERVER_EXECUTABLE) $(shell find . -name '*.cmo' -or -name '*.cmi' -or -name '*.cmx' -or -name '*.o')
+	$(OCB) $(CLIENT_FLAGS) $(SERVER_FLAGS) -clean
