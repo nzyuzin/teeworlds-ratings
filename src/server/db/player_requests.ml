@@ -73,8 +73,10 @@ let select_player_with_rank (player_name: string): (player * int64) option =
   | ("rank", Sqlite3.Data.INT r) -> rank := r; p
   | _ -> p in
   let prepared_stmt = prepare_bind_stmt select_player_with_rank_stmt [Sqlite3.Data.TEXT player_name] in
-  Option.map (fun p -> (player_of_row_e p fill_rank, !rank))
-    (exec_select_single_row_stmt prepared_stmt)
+  let player_with_rank p =
+    let pl =  player_of_row_e p fill_rank in (* First do mutation of the rank ref *)
+    (pl, !rank) in
+  Option.map player_with_rank (exec_select_single_row_stmt prepared_stmt)
 
 let update_rating (game_id: int64) (player_name: string) (rating_change: int64): unit =
   let open Sqlite3 in
