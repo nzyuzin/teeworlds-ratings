@@ -4,5 +4,6 @@
 *.cmx
 *.o
 rctf.db
-send_gameinfo
-get_gameinfo
+teeworlds_ratings
+teeworlds_ratings.conf
+teeworlds_ratings_srv

@@ -1,4 +1,4 @@
-let usage = "Usage: " ^ Sys.argv.(0) ^ " message"
+let usage = "Usage: " ^ Sys.executable_name ^ " message"
 
 let teeworlds_message: string ref = ref ""
 
@@ -17,7 +17,7 @@ let _ =
     "password"
     "Econ password of the teeworlds server" in
   let debug = new bool_cp ~group:config_options ["debug"] ~short_name:"d" false "Enables debug logging" in
-  let _ = config_options # read "send_gameinfo.conf" in
+  let _ = config_options # read (Sys.executable_name ^ ".conf") in
   let cl_arguments = config_options # command_line_args "-" in
   let _ = Arg.parse cl_arguments (fun tw_message -> teeworlds_message := tw_message) usage in
   let addr = Network.address_of_string (destination # get) in

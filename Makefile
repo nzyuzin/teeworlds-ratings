@@ -11,8 +11,8 @@ CLIENT_SOURCES = $(CLIENT_DIR)/teeworlds_econ.ml $(CLIENT_DIR)/client.ml $(CLIEN
 SERVER_SOURCES = $(SERVER_DIR)/db.ml $(SERVER_DB_REQUESTS_DIR)/clan_requests.ml $(SERVER_DB_REQUESTS_DIR)/player_requests.ml $(SERVER_DB_REQUESTS_DIR)/game_requests.ml $(SERVER_DIR)/external_messages.ml $(SERVER_DIR)/rating.ml $(SERVER_DIR)/server.ml $(SERVER_DIR)/main.ml
 BUILD_CLIENT = ocamlfind $(COMPILER) $(CLIENT_PACKAGES) -I $(BASE_DIR) -I $(CLIENT_DIR)
 BUILD_SERVER = ocamlfind $(COMPILER) $(SERVER_PACKAGES) -I $(BASE_DIR) -I $(SERVER_DIR) -I $(SERVER_DB_REQUESTS_DIR)
-CLIENT_EXECUTABLE = send_gameinfo
-SERVER_EXECUTABLE = get_gameinfo
+CLIENT_EXECUTABLE = teeworlds_ratings
+SERVER_EXECUTABLE = teeworlds_ratings_srv
 
 .PHONY: db_setup
 
