@@ -1,6 +1,0 @@
-# Example configuration file with destination endpoints
-# Endpoint specification format is 'ip-addr:port'
-# Below are three examples of a valid endpoint specification
-127.0.0.1:12488
-127.0.0.1:12489
-127.0.0.1:12490
