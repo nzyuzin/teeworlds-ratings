@@ -106,7 +106,9 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
   let _ = Db.open_db db in
   let result = match msg with
   | External_messages.Players_by_rating (limit, offset) ->
-      let players = Player_requests.select_players_by_rating limit offset in
+      let hundred = Int64.of_int 100 in
+      let bounded_limit = if Int64.compare limit hundred > 0 then hundred else limit in
+      let players = Player_requests.select_players_by_rating bounded_limit offset in
       let players_count = Player_requests.count_players () in
       External_messages.Players_by_rating (players_count, players)
   | External_messages.Player_info name ->
@@ -141,7 +143,9 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
       let players_with_names = List.map attach_name players in
       External_messages.Game_info (game, players_with_names)
   | External_messages.Games_by_date (limit, offset) ->
-      let games = Game_requests.select_latest_games limit offset in
+      let hundred = Int64.of_int 100 in
+      let bounded_limit = if Int64.compare limit hundred > 0 then hundred else limit in
+      let games = Game_requests.select_latest_games bounded_limit offset in
       let games_count = Game_requests.count_games () in
       External_messages.Games_by_date (games_count, games) in
   let _ = Db.close_db () in
