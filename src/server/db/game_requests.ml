@@ -42,7 +42,10 @@ let select_latest_games_by_player player_name limit =
   | _ -> g in
   let s = prepare_bind_stmt select_latest_games_by_player_stmt
     [Sqlite3.Data.TEXT player_name; Sqlite3.Data.INT (Int64.of_int limit)] in
-  List.map (fun r -> (game_of_row_e r fill_rating_change), !rating_change) (exec_select_stmt s)
+  let game_with_rating_change r =
+    let game = game_of_row_e r fill_rating_change in (* mutate rating change ref *)
+    (game, !rating_change) in
+  List.map game_with_rating_change (exec_select_stmt s)
 
 let insert_game (game: Gameinfo.gameinfo) =
   let open Sqlite3 in
