@@ -14,6 +14,7 @@ let send addr json =
   let _ = flush out_conn in
   let server_response_line = input_line (Network.in_connection conn) in
   let server_response = Json.from_string server_response_line in
+  let _ = prdebug ("Response:\n" ^ (Json.json_pretty_to_string server_response) ^ "\n") in
   let response_teeworlds_message = match Json.to_message server_response with
     | Json.Message("teeworlds_message", body) -> body
     | Json.Message(something_else, _) -> raise (UnrecognizedServerReponse something_else)
@@ -23,7 +24,7 @@ let send addr json =
   result
 
 let send_message message addr =
-  let _ = prdebug ("Output:\n" ^ (Json.json_pretty_to_string message) ^ "\n") in
+  let _ = prdebug ("Request:\n" ^ (Json.json_pretty_to_string message) ^ "\n") in
   send addr message
 
 let communicate_with_server json addr econ_port econ_password =
