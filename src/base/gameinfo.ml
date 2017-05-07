@@ -38,7 +38,6 @@ type player_stats = {
 
 type player = {
   name: string;
-  clan: string;
   score: int;
   team: team;
   stats: player_stats;
@@ -74,10 +73,8 @@ let rec parse_players (players_lines: string Stream.t) =
   | Some player_line ->
     let nm = Parser.read_quoted_word player_line 0 in
     let nm_len = String.length nm + 2 in
-    let cn = Parser.read_quoted_word player_line (nm_len + 1) in
-    let cn_len = String.length cn + 2 in
-    let sr = Parser.until_space player_line (nm_len + cn_len + 2) in
-    let before_tm_len = String.length sr + cn_len + nm_len + 3 in
+    let sr = Parser.until_space player_line (nm_len + 1) in
+    let before_tm_len = String.length sr + nm_len + 2 in
     let tm = Parser.until_space player_line before_tm_len in
     let stats_list = Parser.list_of_ints player_line (before_tm_len + (String.length tm) + 1) in
     begin
@@ -97,7 +94,6 @@ let rec parse_players (players_lines: string Stream.t) =
       } in
       let player = {
         name = (Parser.unguard_quotes nm);
-        clan = (Parser.unguard_quotes cn);
         score = int_of_string sr;
         team = team_of_string tm;
         stats = stats;

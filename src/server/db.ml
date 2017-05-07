@@ -28,7 +28,7 @@ let check_done = function
   | code -> raise (error_unexpected_code code)
 
 let begin_transaction () =
-  check_ok (Sqlite3.exec (Global.get db) "BEGIN DEFFERED")
+  check_ok (Sqlite3.exec (Global.get db) "BEGIN DEFERRED")
 
 let commit_transaction () =
   check_ok (Sqlite3.exec (Global.get db) "COMMIT")

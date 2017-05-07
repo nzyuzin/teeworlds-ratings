@@ -1,16 +1,27 @@
+create table clans (
+  id INTEGER PRIMARY KEY,
+  name VARCHAR(12) NOT NULL UNIQUE,
+  description TEXT,
+  sub_clan_id INTEGER,
+  FOREIGN KEY (sub_clan_id) REFERENCES clans(id)
+);
+
 create table players (
   id INTEGER PRIMARY KEY,
   name varchar(16) NOT NULL UNIQUE,
-  clan varchar(12) NOT NULL,
+  clan_id INTEGER,
   rating int NOT NULL,
-  secret_key text NOT NULL
+  secret_key text NOT NULL,
+  FOREIGN KEY (clan_id) REFERENCES clans(id)
 );
 
-create view clans as
-select clan, cast(avg(players.rating) as int) as clan_rating
-from players
-group by clan
-order by clan_rating desc;
+create table clan_leaders (
+  player_id INTEGER,
+  clan_id INTEGER,
+  PRIMARY KEY (player_id, clan_id),
+  FOREIGN KEY (player_id) REFERENCES players(id),
+  FOREIGN KEY (clan_id) REFERENCES clans(id)
+);
 
 create table games (
   id INTEGER PRIMARY KEY,
@@ -18,7 +29,7 @@ create table games (
   map varchar(16) NOT NULL,
   game_time int NOT NULL,
   game_result varchar(7) NOT NULL,
-  game_date text NOT NULL
+  game_date DATETIME NOT NULL
 );
 
 create table game_players (
@@ -39,6 +50,6 @@ create table game_players (
   flag_returns int NOT NULL,
   flag_carrier_kills int NOT NULL,
   PRIMARY KEY (game_id, player_id),
-  FOREIGN KEY (player_id) REFERENCES player(id),
-  FOREIGN KEY (game_id) REFERENCES game(id)
+  FOREIGN KEY (player_id) REFERENCES players(id),
+  FOREIGN KEY (game_id) REFERENCES games(id)
 );

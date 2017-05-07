@@ -123,15 +123,28 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
         | Some player ->
           let games = Game.select_latest_by_player name 10 in
           let (stats, total_games) = Option.get (Player_stats.select name) in
-          External_messages.Player_info (player, (stats, total_games), games)
+          let clan = Clan.select player.Player.clan_id in
+          let clan_name = if Option.is_none clan then "" else (Option.get clan).Clan.name in
+          External_messages.Player_info {
+            player = player;
+            clan_name = clan_name;
+            stats = stats;
+            total_games = total_games;
+            games_with_rating_change = games;
+          }
         | None -> raise NotFound
       end
   | External_messages.Clan_info name ->
-      let c = Clan.select name in
+      let c = Clan.select_by_name name in
       begin match c with
         | Some clan ->
-          let players = Player.select_by_clan name in
-          External_messages.Clan_info (clan, players)
+          let players = Player.select_by_clan clan.Clan.id in
+          let average_rating = Clan.select_average_rating clan.Clan.id in
+          External_messages.Clan_info {
+            clan = clan;
+            average_rating = average_rating;
+            players = players
+          }
         | None -> raise NotFound
       end
   | External_messages.Game_info id ->
@@ -161,7 +174,7 @@ let process_registration_request (rr: External_messages.registration_request) db
   | External_messages.Name_available name ->
       let _ = Db.open_db_read_only db in
       External_messages.Name_available (None == (Player.select name))
-  | External_messages.Register (name, clan) ->
+  | External_messages.Register name ->
       let _ = Db.open_db db in
       let _ = Db.begin_transaction () in
       let _ = try
@@ -171,7 +184,7 @@ let process_registration_request (rr: External_messages.registration_request) db
           {
             Player.id = Int64.minus_one;
             Player.name = name;
-            Player.clan = clan;
+            Player.clan_id = Int64.minus_one;
             Player.rating = Int64.of_int 1500;
             Player.secret_key = new_secret;
           } in

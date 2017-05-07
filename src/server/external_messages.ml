@@ -10,7 +10,7 @@ type data_request =
   | Games_by_date of int64 * int64
 
 type registration_request =
-  | Register of string * string
+  | Register of string
   | Name_available of string
 
 type external_message =
@@ -19,8 +19,14 @@ type external_message =
 
 type data_request_response =
   | Players_by_rating of int64 * Player.t list
-  | Player_info of Player.t * (Player_stats.t * int64) * ((Game.t * int64) list)
-  | Clan_info of Clan.t * (Player.t list)
+  | Player_info of {
+    player: Player.t;
+    clan_name: string;
+    stats: Player_stats.t;
+    total_games: int64;
+    games_with_rating_change: (Game.t * int64) list;
+  }
+  | Clan_info of {clan: Clan.t; players: Player.t list; average_rating: int64}
   | Game_info of Game.t * ((Game_player.t * string) list)
   | Games_by_date of int64 * Game.t list
 
@@ -91,8 +97,7 @@ let name_available_of_json: Json.t -> registration_request = function
 let register_of_json: Json.t -> registration_request = function
   | `Assoc([
       ("name", `String(name));
-      ("clan", `String(clan));
-    ]) -> Register (name, clan)
+    ]) -> Register name
   | something_else -> raise (Json.error_ill_formed "register" something_else)
 
 let registration_request_of_json: Json.t -> registration_request = function
@@ -118,19 +123,20 @@ let external_message_of_json: Json.t -> external_message = function
   | something_else -> raise (Json.error_ill_formed "teeworlds_message" something_else)
 
 let json_of_db_player: Player.t -> Json.t = function
-  | {Player.name = nm; Player.clan = cn; Player.rating = rtng; Player.secret_key} ->
+  | {Player.name = nm; Player.clan_id = cn; Player.rating = rtng; Player.secret_key} ->
       `Assoc([
         ("name", `String(nm));
-        ("clan", `String(cn));
+        ("clan_id", `Int(Int64.to_int cn));
         ("rating", `Int(Int64.to_int rtng));
         ("secret_key", `String(secret_key));
       ])
 
 let json_of_db_clan: Clan.t -> Json.t = function
-  | {Clan.name = nm; Clan.rating = cr} ->
+  | {Clan.name = nm; Clan.description = dscr; Clan.sub_clan_id = sid} ->
       `Assoc([
         ("clan_name", `String(nm));
-        ("clan_rating", `Int(Int64.to_int cr));
+        ("description", `String(dscr));
+        ("sub_clan_id", `Int(Int64.to_int sid));
       ])
 
 let json_of_db_game: Game.t -> Json.t = let open Game in function
@@ -207,22 +213,30 @@ let json_of_data_request_response: data_request_response -> Json.t = function
           ("players", `List(List.map json_of_db_player players));
         ]));
       ])
-  | Player_info (player, (stats, total_games), games) ->
+  | Player_info {
+      player = player;
+      clan_name = clan_name;
+      stats = stats;
+      total_games = total_games;
+      games_with_rating_change = games
+    } ->
       `Assoc([
         ("data_request_response_type", `String("player_info"));
         ("data_request_response_content", `Assoc([
           ("player", json_of_db_player player);
+          ("clan_name", `String(clan_name));
           ("stats", json_of_player_stats stats);
           ("total_games", wrap_int(total_games));
           ("games", `List(List.map json_of_db_player_game games));
         ]));
       ])
-  | Clan_info (clan, players) ->
+  | Clan_info {clan = clan; players = players; average_rating = average_rating} ->
       `Assoc([
         ("data_request_response_type", `String("clan_info"));
         ("data_request_response_content", `Assoc([
           ("clan", json_of_db_clan clan);
           ("players", `List(List.map json_of_db_player players));
+          ("average_rating", `Int(Int64.to_int average_rating));
         ]));
       ])
   | Game_info (game, participants) ->

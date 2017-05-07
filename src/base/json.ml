@@ -70,7 +70,6 @@ let rec json_of_players (players: Gameinfo.player list) =
   | player :: rest -> let open Yojson.Basic in let open Gameinfo in
     `Assoc([
       ("name", `String(player.name));
-      ("clan", `String(player.clan));
       ("score", `Int(player.score));
       ("team", `String(string_of_team(player.team)));
       ("stats", json_of_stats player.stats);
@@ -118,7 +117,6 @@ let rec players_of_json (players: Yojson.Basic.json list): Gameinfo.player list 
   | [] -> []
   | `Assoc([
       ("name", `String(nm));
-      ("clan", `String(cn));
       ("score", `Int(scr));
       ("team", `String(tm));
       ("stats", stats_json);
@@ -126,7 +124,6 @@ let rec players_of_json (players: Yojson.Basic.json list): Gameinfo.player list 
       let open Gameinfo in
       let player = {
         name = nm;
-        clan = cn;
         score = scr;
         team = team_of_string tm;
         stats = stats_of_json stats_json;
