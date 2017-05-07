@@ -12,6 +12,8 @@ type data_request =
 type registration_request =
   | Register of string
   | Name_available of string
+  | Register_clan of {name: string; description: string; clan_leader: string}
+  | Join_clan of {player_id: int64; clan_id: int64}
 
 type external_message =
   | Data_request of data_request
@@ -31,7 +33,7 @@ type data_request_response =
   | Games_by_date of int64 * Game.t list
 
 type registration_request_response =
-  | Register
+  | Success of int64
   | Name_available of bool
 
 type external_message_response =
@@ -100,6 +102,21 @@ let register_of_json: Json.t -> registration_request = function
     ]) -> Register name
   | something_else -> raise (Json.error_ill_formed "register" something_else)
 
+let register_clan_of_json: Json.t -> registration_request = function
+  | `Assoc([
+      ("name", `String(name));
+      ("description", `String(description));
+      ("clan_leader", `String(clan_leader));
+    ]) -> Register_clan {name = name; description = description; clan_leader = clan_leader}
+  | something_else -> raise (Json.error_ill_formed "register_clan" something_else)
+
+let join_clan_of_json: Json.t -> registration_request = function
+  | `Assoc([
+      ("player_id", `Int(player_id));
+      ("clan_id", `Int(clan_id));
+    ]) -> Join_clan {player_id = Int64.of_int player_id; clan_id = Int64.of_int clan_id}
+  | something_else -> raise (Json.error_ill_formed "join_clan" something_else)
+
 let registration_request_of_json: Json.t -> registration_request = function
   | `Assoc([
       ("registration_request_type", `String(registration_request_type));
@@ -107,6 +124,8 @@ let registration_request_of_json: Json.t -> registration_request = function
     ]) -> begin match registration_request_type with
         | "name_available" -> name_available_of_json body
         | "register" -> register_of_json body
+        | "register_clan" -> register_clan_of_json body
+        | "join_clan" -> join_clan_of_json body
         | something_else -> raise (UnknownRegistrationRequest something_else)
       end
   | something_else -> raise (Json.error_ill_formed "registration_request" something_else)
@@ -257,9 +276,9 @@ let json_of_data_request_response: data_request_response -> Json.t = function
       ])
 
 let json_of_registration_request_response: registration_request_response -> Json.t = function
-  | Register -> `Assoc([
-      ("registration_request_response_type", `String("register"));
-      ("registration_request_response_content", `String("OK"));
+  | Success id -> `Assoc([
+      ("registration_request_response_type", `String("success"));
+      ("registration_request_response_content", wrap_int id);
     ])
   | Name_available answer -> `Assoc([
       ("registration_request_response_type", `String("name_available"));

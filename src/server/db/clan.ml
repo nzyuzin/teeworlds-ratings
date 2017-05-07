@@ -16,6 +16,13 @@ let of_row_e named_row additional_col =
 let of_row named_row =
   of_row_e named_row (fun x y -> x)
 
+let insert_stmt = "insert into clans (name, description) values (?, ?)"
+
+let insert clan =
+  let open Sqlite3.Data in
+  let s = prepare_bind_stmt insert_stmt [TEXT clan.name; TEXT clan.description] in
+  exec_insert_stmt s
+
 let count_stmt = "select count(*) as rows_count from clans"
 
 let count () =

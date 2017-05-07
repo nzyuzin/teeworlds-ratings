@@ -177,7 +177,7 @@ let process_registration_request (rr: External_messages.registration_request) db
   | External_messages.Register name ->
       let _ = Db.open_db db in
       let _ = Db.begin_transaction () in
-      let _ = try
+      let player_id = try
         let _ = Random.self_init () in
         let new_secret = string_of_int (Random.bits ()) in
         let res = Player.insert
@@ -193,7 +193,37 @@ let process_registration_request (rr: External_messages.registration_request) db
       with
       | error -> let _ = Db.rollback_transaction () in
         raise error in
-      External_messages.Register in
+      External_messages.Success player_id
+  | External_messages.Register_clan {name = name; description = description; clan_leader = clan_leader_name} ->
+      let _ = Db.open_db db in
+      let _ = Db.begin_transaction () in
+      let clan_id = try
+        let clan_leader_id = match Player.select clan_leader_name with
+        | None -> raise NotFound
+        | Some cl -> cl.Player.id in
+        let clan_id = Clan.insert { (Clan.empty ()) with
+          Clan.name = name;
+          Clan.description = description
+        } in
+        let _ = Clan_leader.insert {
+          Clan_leader.player_id = clan_leader_id;
+          Clan_leader.clan_id = clan_id
+        } in
+        let _ = Db.commit_transaction () in
+        clan_id
+      with
+      | error -> let _ = Db.rollback_transaction () in
+        raise error in
+      External_messages.Success clan_id
+  | External_messages.Join_clan {player_id = player_id; clan_id = clan_id} ->
+      let _ = Db.open_db db in
+      let _ = Db.begin_transaction () in
+      let _ = try
+        Player.update_clan player_id clan_id
+      with
+      | error -> let _ = Db.rollback_transaction () in
+        raise error in
+      External_messages.Success clan_id in
   let _ = Db.close_db () in
   result
 

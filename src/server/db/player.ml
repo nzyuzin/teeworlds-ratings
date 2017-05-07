@@ -112,7 +112,13 @@ let select_with_rank (player_name: string): (t * int64) option =
 let update_rating_stmt = "update players set rating = rating + ? where name = ?"
 
 let update_rating (game_id: int64) (player_name: string) (rating_change: int64): unit =
-  let open Sqlite3 in
-  let prepared_update_stmt = prepare_stmt update_rating_stmt in
-  let _ = bind_values prepared_update_stmt [Data.INT rating_change; Data.TEXT player_name] in
-  exec_update_stmt prepared_update_stmt
+  let open Sqlite3.Data in
+  let s = prepare_bind_stmt update_rating_stmt [INT rating_change; TEXT player_name] in
+  exec_update_stmt s
+
+let update_clan_stmt = "update players set clan_id = ? where player_id = ?"
+
+let update_clan player_id clan_id =
+  let open Sqlite3.Data in
+  let s = prepare_bind_stmt update_clan_stmt [INT clan_id; INT player_id] in
+  exec_update_stmt s
