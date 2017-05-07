@@ -11,21 +11,21 @@ let process_player_info player gameinfo game_id =
    * always come after the inserts.
    *)
   let select_player player =
-    Player_requests.select_player player.Gameinfo.name in
+    Player.select player.Gameinfo.name in
   let update_rating existing_player =
     let new_rating = Rating.calculate_new_rating
       player game_id gameinfo.Gameinfo.game_result in
-    Int64.sub new_rating existing_player.Db.rating in
+    Int64.sub new_rating existing_player.Player.rating in
   let lambda = match select_player player with
   | None -> raise (UnknownPlayer player.Gameinfo.name)
   | Some existing_player -> (fun () -> update_rating existing_player) in
-  let _ = Game_requests.insert_game_player player game_id in
+  let _ = Game_player.insert player game_id in
   lambda
 
 let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
   let players = gameinfo.Gameinfo.players in
   let _ = Db.open_db db in
-  let game_id = Game_requests.insert_game gameinfo in
+  let game_id = Game.insert gameinfo in
   let delayed_ratings: (unit -> int64) list =
     List.map (fun player -> process_player_info player gameinfo game_id) players in
   (*
@@ -48,10 +48,10 @@ let report_top5 clid =
   let rec minus_ones times =
     if times = 0 then ""
     else " -1 -1" ^ (minus_ones (times - 1)) in
-  let top5_players = Player_requests.select_top5_players () in
+  let top5_players = Player.select_top5 () in
   let top5_players_len = List.length top5_players in
   let combine_name_rating prev p =
-    prev ^ " \"" ^ (String.escaped p.Db.name) ^ "\" " ^ (Int64.to_string p.Db.rating) in
+    prev ^ " \"" ^ (String.escaped p.Player.name) ^ "\" " ^ (Int64.to_string p.Player.rating) in
   let name_ratings = List.fold_left combine_name_rating "" top5_players in
   let command = "_cb_report_top5 " ^ (string_of_int clid) ^ " " ^
     name_ratings ^ (minus_ones (5 - top5_players_len)) in
@@ -61,21 +61,21 @@ let process_player_request pr clid db =
   let _ = Db.open_db db in
   let callback_command = match pr with
   | Teeworlds_message.Player_rank name -> begin
-      match (Player_requests.select_player_with_rank name) with
+      match (Player.select_with_rank name) with
       | None -> report_player_rank clid name Int64.minus_one Int64.minus_one
-      | Some (player, rank) -> report_player_rank clid name player.Db.rating rank
+      | Some (player, rank) -> report_player_rank clid name player.Player.rating rank
     end
   | Teeworlds_message.Top5_players -> report_top5 clid
   | Teeworlds_message.Login (name, secret) ->
-      let player = Player_requests.select_player_with_secret name in begin
+      let player = Player.select_with_secret name in begin
         match player with
-        | Some p when p.Db.secret_key = secret ->
+        | Some p when p.Player.secret_key = secret ->
             "_cb_auth_player " ^ (string_of_int clid) ^ " \"" ^ (String.escaped name) ^ "\""
         | _ -> "_cb_bad_auth " ^ (string_of_int clid)
       end
   | Teeworlds_message.Player_stats name ->
-      match Game_requests.select_player_stats name with
-      | Some ({Db.stats = stats}, total_games) -> let open Db in
+      match Player_stats.select name with
+      | Some (stats, total_games) -> let open Player_stats in
         "_cb_player_stats " ^
         (string_of_int clid) ^ " " ^
         (Int64.to_string total_games) ^ " " ^
@@ -108,45 +108,44 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
   | External_messages.Players_by_rating (limit, offset) ->
       let hundred = Int64.of_int 100 in
       let bounded_limit = if Int64.compare limit hundred > 0 then hundred else limit in
-      let players = Player_requests.select_players_by_rating bounded_limit offset in
-      let players_count = Player_requests.count_players () in
+      let players = Player.select_by_rating bounded_limit offset in
+      let players_count = Player.count () in
       External_messages.Players_by_rating (players_count, players)
   | External_messages.Player_info name ->
-      let p = Player_requests.select_player_with_secret name in
+      let p = Player.select_with_secret name in
       begin match p with
         | Some player ->
-          let games = Game_requests.select_latest_games_by_player name 10 in
-          let ({Db.stats = stats}, total_games) =
-            Option.get (Game_requests.select_player_stats name) in
+          let games = Game.select_latest_by_player name 10 in
+          let (stats, total_games) = Option.get (Player_stats.select name) in
           External_messages.Player_info (player, (stats, total_games), games)
         | None -> raise NotFound
       end
   | External_messages.Clan_info name ->
-      let c = Clan_requests.select_clan name in
+      let c = Clan.select name in
       begin match c with
         | Some clan ->
-          let players = Player_requests.select_players_by_clan name in
+          let players = Player.select_by_clan name in
           External_messages.Clan_info (clan, players)
         | None -> raise NotFound
       end
   | External_messages.Game_info id ->
       let attach_name plr =
-        begin match Player_requests.select_player_by_id plr.Db.player_id with
+        begin match Player.select_by_id plr.Game_player.player_id with
           | None -> raise (Failure "Player is not found by game player id!")
-          | Some player -> (plr, player.Db.name)
+          | Some player -> (plr, player.Player.name)
         end in
-      let game = begin match Game_requests.select_game id with
+      let game = begin match Game.select id with
           | None -> raise NotFound
           | Some gm -> gm
         end in
-      let players = Game_requests.select_game_players id in
+      let players = Game_player.select_by_game id in
       let players_with_names = List.map attach_name players in
       External_messages.Game_info (game, players_with_names)
   | External_messages.Games_by_date (limit, offset) ->
       let hundred = Int64.of_int 100 in
       let bounded_limit = if Int64.compare limit hundred > 0 then hundred else limit in
-      let games = Game_requests.select_latest_games bounded_limit offset in
-      let games_count = Game_requests.count_games () in
+      let games = Game.select_latest bounded_limit offset in
+      let games_count = Game.count () in
       External_messages.Games_by_date (games_count, games) in
   let _ = Db.close_db () in
   result
@@ -155,17 +154,17 @@ let process_registration_request (rr: External_messages.registration_request) db
   let _ = Db.open_db db in
   let result = match rr with
   | External_messages.Name_available name ->
-      External_messages.Name_available (None == (Player_requests.select_player name))
+      External_messages.Name_available (None == (Player.select name))
   | External_messages.Register (name, clan) ->
       let _ = Random.self_init () in
       let new_secret = string_of_int (Random.bits ()) in
-      let _ = Player_requests.insert_player
+      let _ = Player.insert
         {
-          Db.id = Int64.minus_one;
-          Db.name = name;
-          Db.clan = clan;
-          Db.rating = Int64.of_int 1500;
-          Db.secret_key = new_secret;
+          Player.id = Int64.minus_one;
+          Player.name = name;
+          Player.clan = clan;
+          Player.rating = Int64.of_int 1500;
+          Player.secret_key = new_secret;
         } in
       External_messages.Register in
   let _ = Db.close_db () in

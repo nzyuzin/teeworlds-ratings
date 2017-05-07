@@ -18,11 +18,11 @@ type external_message =
   | Registration_request of registration_request
 
 type data_request_response =
-  | Players_by_rating of int64 * Db.player list
-  | Player_info of Db.player * (Db.player_stats * int64) * ((Db.game * int64) list)
-  | Clan_info of Db.clan * (Db.player list)
-  | Game_info of Db.game * ((Db.game_player * string) list)
-  | Games_by_date of int64 * Db.game list
+  | Players_by_rating of int64 * Player.t list
+  | Player_info of Player.t * (Player_stats.t * int64) * ((Game.t * int64) list)
+  | Clan_info of Clan.t * (Player.t list)
+  | Game_info of Game.t * ((Game_player.t * string) list)
+  | Games_by_date of int64 * Game.t list
 
 type registration_request_response =
   | Register
@@ -117,8 +117,8 @@ let external_message_of_json: Json.t -> external_message = function
       end
   | something_else -> raise (Json.error_ill_formed "teeworlds_message" something_else)
 
-let json_of_db_player: Db.player -> Json.t = function
-  | {Db.name = nm; Db.clan = cn; Db.rating = rtng; Db.secret_key} ->
+let json_of_db_player: Player.t -> Json.t = function
+  | {Player.name = nm; Player.clan = cn; Player.rating = rtng; Player.secret_key} ->
       `Assoc([
         ("name", `String(nm));
         ("clan", `String(cn));
@@ -126,14 +126,14 @@ let json_of_db_player: Db.player -> Json.t = function
         ("secret_key", `String(secret_key));
       ])
 
-let json_of_db_clan: Db.clan -> Json.t = function
-  | {Db.clan_name = nm; Db.clan_rating = cr} ->
+let json_of_db_clan: Clan.t -> Json.t = function
+  | {Clan.name = nm; Clan.rating = cr} ->
       `Assoc([
         ("clan_name", `String(nm));
         ("clan_rating", `Int(Int64.to_int cr));
       ])
 
-let json_of_db_game: Db.game -> Json.t = let open Db in function
+let json_of_db_game: Game.t -> Json.t = let open Game in function
   | {game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date} ->
       `Assoc([
         ("game_id", `Int(Int64.to_int id));
@@ -144,7 +144,7 @@ let json_of_db_game: Db.game -> Json.t = let open Db in function
         ("game_date", `String(date));
       ])
 
-let json_of_db_player_game: (Db.game * int64) -> Json.t = let open Db in function
+let json_of_db_player_game: (Game.t * int64) -> Json.t = let open Game in function
   | ({game_id = id; gametype = gt; map = mp; game_time = gtime; game_result = res; game_date = date}, rating_change) ->
       `Assoc([
         ("game_id", `Int(Int64.to_int id));
@@ -156,7 +156,7 @@ let json_of_db_player_game: (Db.game * int64) -> Json.t = let open Db in functio
         ("rating_change", `Int(Int64.to_int rating_change));
       ])
 
-let json_of_player_stats: Db.player_stats -> Json.t = let open Db in function
+let json_of_player_stats: Player_stats.t -> Json.t = let open Player_stats in function
   | {
       hammer_kills = hammer_kills;
       gun_kills = gun_kills;
@@ -183,7 +183,7 @@ let json_of_player_stats: Db.player_stats -> Json.t = let open Db in function
         ("flag_carrier_kills", wrap_int(flag_carrier_kills));
       ])
 
-let json_of_db_game_participant: (Db.game_player * string) -> Json.t = let open Db in function
+let json_of_db_game_player: (Game_player.t * string) -> Json.t = let open Game_player in function
   | ({ game_id = _;
       player_id = _;
       score = scr;
@@ -230,7 +230,7 @@ let json_of_data_request_response: data_request_response -> Json.t = function
         ("data_request_response_type", `String("game_info"));
         ("data_request_response_content", `Assoc([
           ("game", json_of_db_game game);
-          ("participants", `List(List.map json_of_db_game_participant participants));
+          ("participants", `List(List.map json_of_db_game_player participants));
         ]));
       ])
   | Games_by_date (total_games, games) ->
