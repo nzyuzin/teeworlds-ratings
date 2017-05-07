@@ -8,6 +8,9 @@ let db = Global.empty "db"
 let open_db db_name =
   Global.set db (Sqlite3.db_open ~mode:`NO_CREATE db_name)
 
+let open_db_read_only db_name =
+  Global.set db (Sqlite3.db_open ~mode:`READONLY db_name)
+
 let close_db () =
   match Sqlite3.db_close (Global.get db) with
   | true -> ()
@@ -23,6 +26,15 @@ let check_ok = function
 let check_done = function
   | Sqlite3.Rc.DONE -> ()
   | code -> raise (error_unexpected_code code)
+
+let begin_transaction () =
+  check_ok (Sqlite3.exec (Global.get db) "BEGIN DEFFERED")
+
+let commit_transaction () =
+  check_ok (Sqlite3.exec (Global.get db) "COMMIT")
+
+let rollback_transaction () =
+  check_ok (Sqlite3.exec (Global.get db) "ROLLBACK")
 
 let prepare_stmt stmt_string =
   Sqlite3.prepare (Global.get db) stmt_string

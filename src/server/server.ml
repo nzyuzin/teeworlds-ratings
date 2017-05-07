@@ -25,17 +25,23 @@ let process_player_info player gameinfo game_id =
 let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
   let players = gameinfo.Gameinfo.players in
   let _ = Db.open_db db in
-  let game_id = Game.insert gameinfo in
-  let delayed_ratings: (unit -> int64) list =
-    List.map (fun player -> process_player_info player gameinfo game_id) players in
-  (*
-   * Forces the computation of the delayed updates. Note that at this point all
-   * inserts have already been computed since they're firstly computed and only
-   * then produce empty lambda, while updates are entirely in lambdas.
-   *)
-  let ratings = List.map (fun get_rating -> get_rating ()) delayed_ratings in
-  let update_rating player rating = Rating.update_rating game_id player.Gameinfo.name rating in
-  let _ = List.iter2 update_rating players ratings in
+  let _ = Db.begin_transaction () in
+  let _ = try
+    let game_id = Game.insert gameinfo in
+    let delayed_ratings: (unit -> int64) list =
+      List.map (fun player -> process_player_info player gameinfo game_id) players in
+    (*
+     * Forces the computation of the delayed updates. Note that at this point all
+     * inserts have already been computed since they're firstly computed and only
+     * then produce empty lambda, while updates are entirely in lambdas.
+     *)
+    let ratings = List.map (fun get_rating -> get_rating ()) delayed_ratings in
+    let update_rating player rating = Rating.update_rating game_id player.Gameinfo.name rating in
+    let _ = List.iter2 update_rating players ratings in
+    Db.commit_transaction ()
+  with
+  | error -> let _ = Db.rollback_transaction () in
+    raise error in
   Db.close_db ()
 
 let report_player_rank clid player_name rating rank =
@@ -58,7 +64,7 @@ let report_top5 clid =
   command
 
 let process_player_request pr clid db =
-  let _ = Db.open_db db in
+  let _ = Db.open_db_read_only db in
   let callback_command = match pr with
   | Teeworlds_message.Player_rank name -> begin
       match (Player.select_with_rank name) with
@@ -103,7 +109,7 @@ let process_teeworlds_message (msg: Json.t) (db: string): Teeworlds_message.serv
       Teeworlds_message.Callback (process_player_request req clid db)
 
 let process_data_request (msg: External_messages.data_request) db: External_messages.data_request_response =
-  let _ = Db.open_db db in
+  let _ = Db.open_db_read_only db in
   let result = match msg with
   | External_messages.Players_by_rating (limit, offset) ->
       let hundred = Int64.of_int 100 in
@@ -151,21 +157,29 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
   result
 
 let process_registration_request (rr: External_messages.registration_request) db: External_messages.registration_request_response =
-  let _ = Db.open_db db in
   let result = match rr with
   | External_messages.Name_available name ->
+      let _ = Db.open_db_read_only db in
       External_messages.Name_available (None == (Player.select name))
   | External_messages.Register (name, clan) ->
-      let _ = Random.self_init () in
-      let new_secret = string_of_int (Random.bits ()) in
-      let _ = Player.insert
-        {
-          Player.id = Int64.minus_one;
-          Player.name = name;
-          Player.clan = clan;
-          Player.rating = Int64.of_int 1500;
-          Player.secret_key = new_secret;
-        } in
+      let _ = Db.open_db db in
+      let _ = Db.begin_transaction () in
+      let _ = try
+        let _ = Random.self_init () in
+        let new_secret = string_of_int (Random.bits ()) in
+        let res = Player.insert
+          {
+            Player.id = Int64.minus_one;
+            Player.name = name;
+            Player.clan = clan;
+            Player.rating = Int64.of_int 1500;
+            Player.secret_key = new_secret;
+          } in
+        let _ = Db.commit_transaction () in
+        res
+      with
+      | error -> let _ = Db.rollback_transaction () in
+        raise error in
       External_messages.Register in
   let _ = Db.close_db () in
   result
