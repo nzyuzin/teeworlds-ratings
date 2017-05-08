@@ -115,8 +115,16 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
       let hundred = Int64.of_int 100 in
       let bounded_limit = if Int64.compare limit hundred > 0 then hundred else limit in
       let players = Player.select_by_rating bounded_limit offset in
+      let attach_clan_name pl =
+        let clan_name = match Clan.select pl.Player.clan_id with
+        | Some clan -> clan.Clan.name
+        | None -> "" in
+        (pl, clan_name) in
       let players_count = Player.count () in
-      External_messages.Players_by_rating (players_count, players)
+      External_messages.Players_by_rating {
+        total_players = players_count;
+        players_with_clan_names = List.map attach_clan_name players
+      }
   | External_messages.Player_info name ->
       let p = Player.select_with_secret name in
       begin match p with
@@ -194,17 +202,15 @@ let process_registration_request (rr: External_messages.registration_request) db
       | error -> let _ = Db.rollback_transaction () in
         raise error in
       External_messages.Success player_id
-  | External_messages.Register_clan {name = name; description = description; clan_leader = clan_leader_name} ->
+  | External_messages.Register_clan {name = name; description = description; clan_leader = clan_leader_id} ->
       let _ = Db.open_db db in
       let _ = Db.begin_transaction () in
       let clan_id = try
-        let clan_leader_id = match Player.select clan_leader_name with
-        | None -> raise NotFound
-        | Some cl -> cl.Player.id in
         let clan_id = Clan.insert { (Clan.empty ()) with
           Clan.name = name;
           Clan.description = description
         } in
+        let _ = Player.update_clan clan_leader_id clan_id in
         let _ = Clan_leader.insert {
           Clan_leader.player_id = clan_leader_id;
           Clan_leader.clan_id = clan_id

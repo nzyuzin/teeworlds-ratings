@@ -1,5 +1,6 @@
 exception UnexpectedErrorCode of string
 exception UnexpectedDbData of string
+exception SqliteError of string
 
 type named_row = (string * Sqlite3.Data.t) array
 
@@ -37,16 +38,23 @@ let rollback_transaction () =
   check_ok (Sqlite3.exec (Global.get db) "ROLLBACK")
 
 let prepare_stmt stmt_string =
-  Sqlite3.prepare (Global.get db) stmt_string
-
-let bind_values stmt vals =
-  let bind_fun i value = check_ok (Sqlite3.bind stmt (i + 1) value) in
-  List.iteri bind_fun vals
+  try
+    Sqlite3.prepare (Global.get db) stmt_string
+  with
+  | Sqlite3.Error str ->
+      let err_msg = "Error while preparing the query <" ^ stmt_string ^ ">: " ^ str in
+      raise (SqliteError err_msg)
 
 let prepare_bind_stmt stmt_string vals =
-  let stmt = prepare_stmt stmt_string in
-  let _ = bind_values stmt vals in
-  stmt
+  try
+    let stmt = prepare_stmt stmt_string in
+    let bind_fun i value = check_ok (Sqlite3.bind stmt (i + 1) value) in
+    let _ = List.iteri bind_fun vals in
+    stmt
+  with
+  | Sqlite3.Error str ->
+      let err_msg = "Error while binding the query <" ^ stmt_string ^ ">: " ^ str in
+      raise (SqliteError err_msg)
 
 let step_until_done (stmt: Sqlite3.stmt): named_row list =
   let rec inner aggregator =

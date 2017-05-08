@@ -27,12 +27,11 @@ let of_row (named_row: named_row): t =
 let of_rows rows =
   List.map of_row rows
 
-let insert_stmt = "insert into players (name, clan_id, rating, secret_key) values (?, NULL ?, ?)"
+let insert_stmt = "insert into players (name, clan_id, rating, secret_key) values (?, NULL, ?, ?)"
 
 let insert (player: t) =
-  let prepared_insert_stmt = prepare_stmt insert_stmt in
   let open Sqlite3 in
-  let _ = bind_values prepared_insert_stmt
+  let prepared_insert_stmt = prepare_bind_stmt insert_stmt
     [Data.TEXT player.name; Data.INT (Int64.of_int 1500); Data.TEXT player.secret_key] in
   exec_insert_stmt prepared_insert_stmt
 
@@ -45,8 +44,7 @@ let count (): int64 =
 let select_stmt = "select name, clan_id, rating from players where name = ?"
 
 let select (player_name: string): t option =
-  let prepared_select_stmt = prepare_stmt select_stmt in
-  let _ = bind_values prepared_select_stmt [Sqlite3.Data.TEXT player_name] in
+  let prepared_select_stmt = prepare_bind_stmt select_stmt [Sqlite3.Data.TEXT player_name] in
   (* We need only a single step since name is a PRIMARY KEY and so no more than
    * one row will be returned under select on name *)
   Option.map of_row (exec_select_single_row_stmt prepared_select_stmt)
@@ -116,7 +114,7 @@ let update_rating (game_id: int64) (player_name: string) (rating_change: int64):
   let s = prepare_bind_stmt update_rating_stmt [INT rating_change; TEXT player_name] in
   exec_update_stmt s
 
-let update_clan_stmt = "update players set clan_id = ? where player_id = ?"
+let update_clan_stmt = "update players set clan_id = ? where id = ?"
 
 let update_clan player_id clan_id =
   let open Sqlite3.Data in

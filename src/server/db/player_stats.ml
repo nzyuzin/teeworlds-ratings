@@ -15,17 +15,17 @@ type t = {
 }
 
 let empty () = {
-  hammer_kills = Int64.minus_one;
-  gun_kills = Int64.minus_one;
-  shotgun_kills = Int64.minus_one;
-  grenade_kills = Int64.minus_one;
-  rifle_kills = Int64.minus_one;
-  deaths = Int64.minus_one;
-  suicides = Int64.minus_one;
-  flag_grabs = Int64.minus_one;
-  flag_captures = Int64.minus_one;
-  flag_returns = Int64.minus_one;
-  flag_carrier_kills = Int64.minus_one;
+  hammer_kills = Int64.zero;
+  gun_kills = Int64.zero;
+  shotgun_kills = Int64.zero;
+  grenade_kills = Int64.zero;
+  rifle_kills = Int64.zero;
+  deaths = Int64.zero;
+  suicides = Int64.zero;
+  flag_grabs = Int64.zero;
+  flag_captures = Int64.zero;
+  flag_returns = Int64.zero;
+  flag_carrier_kills = Int64.zero;
 }
 
 let of_row_e named_row additional_cols = let open Sqlite3.Data in

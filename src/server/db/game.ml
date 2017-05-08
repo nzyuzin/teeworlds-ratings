@@ -32,9 +32,8 @@ let insert_stmt =
 
 let insert (game: Gameinfo.gameinfo) =
   let open Sqlite3 in
-  let prepared_insert_stmt = prepare_stmt insert_stmt in
   let game_result = Gameinfo.string_of_game_result game.Gameinfo.game_result in
-  let _ = bind_values prepared_insert_stmt [
+  let prepared_insert_stmt = prepare_bind_stmt insert_stmt [
     Data.TEXT game.Gameinfo.gametype;
     Data.TEXT game.Gameinfo.map;
     Data.INT (Int64.of_int game.Gameinfo.time);
@@ -88,8 +87,7 @@ let select_players_by_team_stmt =
   "  game_players.game_id = ? and team = ?"
 
 let select_players_by_team (game_id: int64) (team: Gameinfo.team): Player.t list =
-  let prepared_stmt = prepare_stmt select_players_by_team_stmt in
-  let _ = bind_values prepared_stmt [
+  let prepared_stmt = prepare_bind_stmt select_players_by_team_stmt [
     Sqlite3.Data.INT game_id;
     Sqlite3.Data.TEXT (Gameinfo.string_of_team team)
   ] in
@@ -100,7 +98,6 @@ let update_rating_change_stmt = "update game_players set rating_change = ? where
 
 let update_rating_change (game_id: int64) (player_name: string) (rating_change: int64) =
   let open Sqlite3 in
-  let prepared_rating_change_update_stmt = prepare_stmt update_rating_change_stmt in
-  let _ = bind_values prepared_rating_change_update_stmt
+  let s = prepare_bind_stmt update_rating_change_stmt
     [Data.INT rating_change; Data.INT game_id; Data.TEXT player_name] in
-  exec_update_stmt prepared_rating_change_update_stmt
+  exec_update_stmt s
