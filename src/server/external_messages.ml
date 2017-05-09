@@ -31,7 +31,12 @@ type data_request_response =
     total_games: int64;
     games_with_rating_change: (Game.t * int64) list;
   }
-  | Clan_info of {clan: Clan.t; players: Player.t list; average_rating: int64}
+  | Clan_info of {
+    clan: Clan.t;
+    players: Player.t list;
+    average_rating: int64;
+    clan_leader_id: int64;
+  }
   | Game_info of Game.t * ((Game_player.t * string) list)
   | Games_by_date of int64 * Game.t list
 
@@ -258,13 +263,19 @@ let json_of_data_request_response: data_request_response -> Json.t = function
           ("games", `List(List.map json_of_db_player_game games));
         ]));
       ])
-  | Clan_info {clan = clan; players = players; average_rating = average_rating} ->
+  | Clan_info {
+      clan = clan;
+      players = players;
+      average_rating = average_rating;
+      clan_leader_id = clan_leader_id;
+    } ->
       `Assoc([
         ("data_request_response_type", `String("clan_info"));
         ("data_request_response_content", `Assoc([
           ("clan", json_of_db_clan clan);
           ("players", `List(List.map json_of_db_player players));
-          ("average_rating", `Int(Int64.to_int average_rating));
+          ("average_rating", wrap_int average_rating);
+          ("clan_leader_id", wrap_int clan_leader_id);
         ]));
       ])
   | Game_info (game, participants) ->

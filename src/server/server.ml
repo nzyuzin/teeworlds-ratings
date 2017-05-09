@@ -148,10 +148,12 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
         | Some clan ->
           let players = Player.select_by_clan clan.Clan.id in
           let average_rating = Clan.select_average_rating clan.Clan.id in
+          let clan_leader = Option.get (Clan_leader.select_by_clan clan.Clan.id) in
           External_messages.Clan_info {
             clan = clan;
             average_rating = average_rating;
-            players = players
+            players = players;
+            clan_leader_id = clan_leader.Clan_leader.player_id;
           }
         | None -> raise NotFound
       end
