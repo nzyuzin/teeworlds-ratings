@@ -4,5 +4,5 @@ Map: dm1
 Gametime: 10
 Result: RED
 Players:
-"Shiki" "[POLICE]" 1 RED 0 0 1 0 0 0 0 0 0 0 0
-"ShikiShiki" "" 0 BLUE 0 0 0 0 0 1 0 0 0 0 0
+"Shiki" 1 RED 0 0 10 0 0 0 0 0 0 0 0
+"ShikiShiki" 0 BLUE 0 0 0 0 0 10 0 0 0 0 0

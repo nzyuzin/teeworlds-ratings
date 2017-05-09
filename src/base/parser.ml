@@ -8,10 +8,11 @@ let until_char str chr from_pos =
 let until_space str from_pos =
   until_char str ' ' from_pos
 
-let list_of_ints str from_pos: int list =
+let list_of_ints ints_str from_pos: int list =
+  let str = String.trim ints_str in
   let len = String.length str in
   let rec inner prev =
-    if prev >= len || (prev + 1 < len && str.[prev + 1] <> ' ') then
+    if prev >= len then
       []
     else
       let i = until_space str prev in
