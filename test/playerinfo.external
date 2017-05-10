@@ -1,0 +1,1 @@
+{"message_type": "external_message", "message_content": {"external_message_type": "data_request", "external_message_content": {"data_request_type": "player_info", "data_request_content": {"name": "Shiki"}}}}
