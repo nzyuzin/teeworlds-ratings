@@ -1,7 +1,7 @@
 _build/
 
 *.swp
-rctf.db
 teeworlds_ratings
 teeworlds_ratings.conf
+teeworlds_ratings.db
 teeworlds_ratings_srv

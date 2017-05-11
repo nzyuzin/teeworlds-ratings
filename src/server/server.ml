@@ -278,6 +278,6 @@ let handle_connection (conn: Network.connection) (db: string): unit =
   | UnknownMessageType str as e -> report_error ("Received message with unknown type: " ^ str) e
   | e -> report_error "Internal server error" e
 
-let run port db =
-  let addr = Unix.ADDR_INET (Unix.inet_addr_of_string "127.0.0.1", port) in
+let run (addr, port) db =
+  let addr = Unix.ADDR_INET (Unix.inet_addr_of_string addr, port) in
   Network.establish_server (fun conn -> handle_connection conn db) addr

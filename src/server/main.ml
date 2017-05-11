@@ -1,11 +1,13 @@
 let port: int ref = ref 12488
-let database_file: string ref = ref "./rctf.db"
+let address: string ref = ref "127.0.0.1"
+let database_file: string ref = ref "./teeworlds_ratings.db"
 
-let usage = "Usage: " ^ Sys.argv.(0) ^ " [-p <port>] [-d <database>]"
+let usage = "Usage: " ^ Sys.argv.(0) ^ " [-a <address>] [-p <port>] [-d <database>]"
 
 let cl_arguments = [
   ("-p", Arg.Set_int(port), "Source port for the server");
   ("-d", Arg.Set_string(database_file), "Location of the sqlite3 database");
+  ("-a", Arg.Set_string(address), "Address for server to bind on");
 ]
 
 let _ =
@@ -15,4 +17,4 @@ let _ =
   else if not (Sys.file_exists !database_file) then
     raise (Failure ("Database file does not exist: " ^ !database_file))
   else
-    Server.run !port !database_file
+    Server.run (!address, !port) !database_file
