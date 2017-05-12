@@ -3,6 +3,7 @@ open Db
 type t = {
   game_id: int64;
   player_id: int64;
+  clan_id: int64;
   score: int64;
   team: string;
   rating_change: int64;
@@ -12,6 +13,7 @@ type t = {
 let empty () = {
   game_id = Int64.minus_one;
   player_id = Int64.minus_one;
+  clan_id = Int64.minus_one;
   score = Int64.minus_one;
   team = "";
   rating_change = Int64.minus_one;
@@ -22,6 +24,7 @@ let of_row_e named_row additional_cols = let open Sqlite3.Data in
   let fill_game_player gp col = match col with
   | ("game_id", INT game_id) -> {gp with game_id = game_id}
   | ("player_id", INT player_id) -> {gp with player_id = player_id}
+  | ("clan_id", INT clan_id) -> {gp with clan_id = clan_id}
   | ("score", INT score) -> {gp with score = score}
   | ("team", TEXT team) -> {gp with team = team}
   | ("rating_change", INT rating_change) -> {gp with rating_change = rating_change}
@@ -43,8 +46,8 @@ let of_rows rows =
   List.map of_row rows
 
 let insert_stmt =
-  "insert into game_players (game_id, player_id, score, team, rating_change, hammer_kills, gun_kills, shotgun_kills, grenade_kills, rifle_kills, deaths, suicides, flag_grabs, flag_captures, flag_returns, flag_carrier_kills) " ^
-  "select ? as game_id, id as player_id, ? as score, ? as team, 0 as rating_change, ? as hammer_kills, ? as gun_kills, ? as shotgun_kills, ? as grenade_kills, ? as rifle_kills, ? as deaths, ? as suicides, ? as flag_grabs, ? as flag_captures, ? as flag_returns, ? as flag_carrier_kills from players where name = ?"
+  "insert into game_players (game_id, player_id, clan_id, score, team, rating_change, hammer_kills, gun_kills, shotgun_kills, grenade_kills, rifle_kills, deaths, suicides, flag_grabs, flag_captures, flag_returns, flag_carrier_kills) " ^
+  "select ? as game_id, id as player_id, clan_id as clan_id, ? as score, ? as team, 0 as rating_change, ? as hammer_kills, ? as gun_kills, ? as shotgun_kills, ? as grenade_kills, ? as rifle_kills, ? as deaths, ? as suicides, ? as flag_grabs, ? as flag_captures, ? as flag_returns, ? as flag_carrier_kills from players where name = ?"
 
 let insert (player: Gameinfo.player) game_id =
   let open Sqlite3.Data in let open Gameinfo in
@@ -69,7 +72,7 @@ let insert (player: Gameinfo.player) game_id =
   exec_insert_stmt prepared_insert_stmt
 
 let select_by_game_stmt =
-  "select game_id, player_id, score, team, rating_change, hammer_kills, gun_kills, shotgun_kills, grenade_kills, rifle_kills, deaths, suicides, flag_grabs, flag_captures, flag_returns, flag_carrier_kills from game_players where game_id = ?"
+  "select game_id, player_id, clan_id, score, team, rating_change, hammer_kills, gun_kills, shotgun_kills, grenade_kills, rifle_kills, deaths, suicides, flag_grabs, flag_captures, flag_returns, flag_carrier_kills from game_players where game_id = ?"
 
 let select_by_game game_id: t list =
   let s = prepare_bind_stmt select_by_game_stmt [Sqlite3.Data.INT game_id] in

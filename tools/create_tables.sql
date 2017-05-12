@@ -35,6 +35,7 @@ create table games (
 create table game_players (
   game_id INTEGER,
   player_id INTEGER,
+  clan_id INTEGER,
   score int NOT NULL,
   team varchar(4) NOT NULL,
   rating_change int NOT NULL,
@@ -52,4 +53,5 @@ create table game_players (
   PRIMARY KEY (game_id, player_id),
   FOREIGN KEY (player_id) REFERENCES players(id),
   FOREIGN KEY (game_id) REFERENCES games(id)
+  FOREIGN KEY (clan_id) REFERENCES clans(id),
 );
