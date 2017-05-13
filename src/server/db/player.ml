@@ -41,7 +41,7 @@ let count (): int64 =
   let s = prepare_stmt count_stmt in
   count_of_row (Option.get (exec_select_single_row_stmt s))
 
-let select_stmt = "select name, clan_id, rating from players where name = ?"
+let select_stmt = "select id, name, clan_id, rating from players where name = ?"
 
 let select (player_name: string): t option =
   let prepared_select_stmt = prepare_bind_stmt select_stmt [Sqlite3.Data.TEXT player_name] in
@@ -49,13 +49,13 @@ let select (player_name: string): t option =
    * one row will be returned under select on name *)
   Option.map of_row (exec_select_single_row_stmt prepared_select_stmt)
 
-let select_by_id_stmt = "select name, clan_id, rating from players where id = ?"
+let select_by_id_stmt = "select id, name, clan_id, rating from players where id = ?"
 
 let select_by_id (id: int64): t option =
   let s = prepare_bind_stmt select_by_id_stmt [Sqlite3.Data.INT id] in
   Option.map of_row (exec_select_single_row_stmt s)
 
-let select_with_secret_stmt = "select name, clan_id, rating, secret_key from players where name = ?"
+let select_with_secret_stmt = "select id, name, clan_id, rating, secret_key from players where name = ?"
 
 let select_with_secret (player_name: string): t option =
   let fill_secret p c = match c with
@@ -65,19 +65,19 @@ let select_with_secret (player_name: string): t option =
     [Sqlite3.Data.TEXT player_name] in
   Option.map (fun r -> of_row_e r fill_secret) (exec_select_single_row_stmt prepared_select_stmt)
 
-let select_by_rating_stmt = "select name, clan_id, rating from players order by rating DESC limit(?) offset(?)"
+let select_by_rating_stmt = "select id, name, clan_id, rating from players order by rating DESC limit(?) offset(?)"
 
 let select_by_rating limit offset =
   let s = prepare_bind_stmt select_by_rating_stmt [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
   of_rows (exec_select_stmt s)
 
-let select_by_clan_stmt = "select name, clan_id, rating from players where clan_id = ?"
+let select_by_clan_stmt = "select id, name, clan_id, rating from players where clan_id = ?"
 
 let select_by_clan clan_id =
   let s = prepare_bind_stmt select_by_clan_stmt [Sqlite3.Data.INT clan_id] in
   of_rows (exec_select_stmt s)
 
-let select_top5_stmt = "select name, clan_id, rating from players order by rating DESC limit(5)"
+let select_top5_stmt = "select id, name, clan_id, rating from players order by rating DESC limit(5)"
 
 let select_top5 (): t list =
   let prepared_select_stmt = prepare_stmt select_top5_stmt in
@@ -94,7 +94,7 @@ let select_with_rank_stmt =
   "    from players as higher_players, this_player " ^
   "    where this_player.rating < higher_players.rating " ^
   "  ) " ^
-  "select name, clan_id, rating, (rank + 1) as rank from this_player, rank "
+  "select id, name, clan_id, rating, (rank + 1) as rank from this_player, rank "
 
 let select_with_rank (player_name: string): (t * int64) option =
   let rank = ref Int64.minus_one in

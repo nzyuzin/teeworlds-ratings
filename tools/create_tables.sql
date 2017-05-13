@@ -1,7 +1,6 @@
 create table clans (
   id INTEGER PRIMARY KEY,
   name VARCHAR(12) NOT NULL UNIQUE,
-  description TEXT,
   sub_clan_id INTEGER,
   FOREIGN KEY (sub_clan_id) REFERENCES clans(id)
 );
