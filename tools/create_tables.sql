@@ -52,6 +52,6 @@ create table game_players (
   flag_carrier_kills int NOT NULL,
   PRIMARY KEY (game_id, player_id),
   FOREIGN KEY (player_id) REFERENCES players(id),
-  FOREIGN KEY (game_id) REFERENCES games(id)
-  FOREIGN KEY (clan_id) REFERENCES clans(id),
+  FOREIGN KEY (game_id) REFERENCES games(id),
+  FOREIGN KEY (clan_id) REFERENCES clans(id)
 );

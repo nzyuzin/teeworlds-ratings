@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-if [ ! -e rctf.db ]; then
-  sqlite3 rctf.db < tools/create_tables.sql
+DB_NAME="teeworlds_ratings.db"
+
+if [ ! -e ${DB_NAME} ]; then
+  sqlite3 ${DB_NAME} < tools/create_tables.sql
 else
-  echo "Database already exists!"
+  echo 'Database already exists!'
   exit 1
 fi
