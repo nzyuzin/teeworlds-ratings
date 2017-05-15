@@ -35,7 +35,6 @@ type data_request_response =
     clan: Clan.t;
     players: Player.t list;
     average_rating: int64;
-    clan_leader_id: int64;
   }
   | Game_info of Game.t * ((Game_player.t * string) list)
   | Games_by_date of int64 * Game.t list
@@ -261,7 +260,6 @@ let json_of_data_request_response: data_request_response -> Json.t = function
       clan = clan;
       players = players;
       average_rating = average_rating;
-      clan_leader_id = clan_leader_id;
     } ->
       `Assoc([
         ("data_request_response_type", `String("clan_info"));
@@ -269,7 +267,6 @@ let json_of_data_request_response: data_request_response -> Json.t = function
           ("clan", json_of_db_clan clan);
           ("players", `List(List.map json_of_db_player players));
           ("average_rating", wrap_int average_rating);
-          ("clan_leader_id", wrap_int clan_leader_id);
         ]));
       ])
   | Game_info (game, participants) ->

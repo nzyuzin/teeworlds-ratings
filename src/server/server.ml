@@ -143,12 +143,10 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
         | Some clan ->
           let players = Player.select_by_clan clan.Clan.id in
           let average_rating = Clan.select_average_rating clan.Clan.id in
-          let clan_leader = Option.get (Clan_leader.select_by_clan clan.Clan.id) in
           External_messages.Clan_info {
             clan = clan;
             average_rating = average_rating;
             players = players;
-            clan_leader_id = clan_leader.Clan_leader.player_id;
           }
         | None -> raise NotFound
       end
@@ -205,10 +203,6 @@ let process_registration_request (rr: External_messages.registration_request) db
       let clan_id = try
         let clan_id = Clan.insert { (Clan.empty ()) with Clan.name = name } in
         let _ = Player.update_clan clan_leader_id clan_id in
-        let _ = Clan_leader.insert {
-          Clan_leader.player_id = clan_leader_id;
-          Clan_leader.clan_id = clan_id
-        } in
         let _ = Db.commit_transaction () in
         clan_id
       with

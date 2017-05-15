@@ -14,14 +14,6 @@ create table players (
   FOREIGN KEY (clan_id) REFERENCES clans(id)
 );
 
-create table clan_leaders (
-  player_id INTEGER,
-  clan_id INTEGER,
-  PRIMARY KEY (player_id, clan_id),
-  FOREIGN KEY (player_id) REFERENCES players(id),
-  FOREIGN KEY (clan_id) REFERENCES clans(id)
-);
-
 create table games (
   id INTEGER PRIMARY KEY,
   gametype varchar(8) NOT NULL,
