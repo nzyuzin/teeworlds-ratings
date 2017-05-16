@@ -9,7 +9,8 @@ create table players (
   id INTEGER PRIMARY KEY,
   name varchar(16) NOT NULL UNIQUE,
   clan_id INTEGER,
-  rating int NOT NULL,
+  ctf_rating int NOT NULL,
+  dm_rating int NOT NULL,
   secret_key text NOT NULL,
   FOREIGN KEY (clan_id) REFERENCES clans(id)
 );

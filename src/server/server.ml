@@ -15,7 +15,7 @@ let process_player_info player gameinfo game_id =
   let update_rating existing_player =
     let new_rating = Rating.calculate_new_rating
       player game_id gameinfo.Gameinfo.game_result in
-    Int64.sub new_rating existing_player.Player.rating in
+    Int64.sub new_rating existing_player.Player.ctf_rating in
   let lambda = match select_player player with
   | None -> raise (UnknownPlayer player.Gameinfo.name)
   | Some existing_player -> (fun () -> update_rating existing_player) in
@@ -57,7 +57,7 @@ let report_top5 clid =
   let top5_players = Player.select_top5 () in
   let top5_players_len = List.length top5_players in
   let combine_name_rating prev p =
-    prev ^ " \"" ^ (String.escaped p.Player.name) ^ "\" " ^ (Int64.to_string p.Player.rating) in
+    prev ^ " \"" ^ (String.escaped p.Player.name) ^ "\" " ^ (Int64.to_string p.Player.ctf_rating) in
   let name_ratings = List.fold_left combine_name_rating "" top5_players in
   let command = "_cb_report_top5 " ^ (string_of_int clid) ^ " " ^
     name_ratings ^ (minus_ones (5 - top5_players_len)) in
@@ -67,9 +67,9 @@ let process_player_request pr clid db =
   let _ = Db.open_db_read_only db in
   let callback_command = match pr with
   | Teeworlds_message.Player_rank name -> begin
-      match (Player.select_with_rank name) with
+      match (Player.select_with_ctf_rank name) with
       | None -> report_player_rank clid name Int64.minus_one Int64.minus_one
-      | Some (player, rank) -> report_player_rank clid name player.Player.rating rank
+      | Some (player, rank) -> report_player_rank clid name player.Player.ctf_rating rank
     end
   | Teeworlds_message.Top5_players -> report_top5 clid
   | Teeworlds_message.Login (name, secret) ->
@@ -188,7 +188,8 @@ let process_registration_request (rr: External_messages.registration_request) db
             Player.id = Int64.minus_one;
             Player.name = name;
             Player.clan_id = Int64.minus_one;
-            Player.rating = Int64.of_int 1500;
+            Player.ctf_rating = Int64.minus_one;
+            Player.dm_rating = Int64.minus_one;
             Player.secret_key = new_secret;
           } in
         let _ = Db.commit_transaction () in

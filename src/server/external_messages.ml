@@ -148,12 +148,13 @@ let external_message_of_json: Json.t -> external_message = function
   | something_else -> raise (Json.error_ill_formed "teeworlds_message" something_else)
 
 let json_of_db_player: Player.t -> Json.t = let open Player in function
-  | {id = id; name = nm; clan_id = cn; rating = rtng; secret_key} ->
+  | {id = id; name = nm; clan_id = cn; ctf_rating = rtng; dm_rating = dmrtng; secret_key} ->
       `Assoc([
         ("id", wrap_int id);
         ("name", `String(nm));
         ("clan_id", wrap_int cn);
-        ("rating", wrap_int rtng);
+        ("ctf_rating", wrap_int rtng);
+        ("dm_rating", wrap_int dmrtng);
         ("secret_key", `String(secret_key));
       ])
 

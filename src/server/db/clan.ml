@@ -40,14 +40,14 @@ let select_by_name clan_name =
   let s = prepare_bind_stmt select_by_name_stmt [Sqlite3.Data.TEXT clan_name] in
   Option.map of_row (exec_select_single_row_stmt s)
 
-let select_average_rating_stmt =
-  "select cast(avg(players.rating) as int) as average_rating from players where clan_id = ?"
+let select_average_rating_stmt rating_type =
+  "select cast(avg(players." ^ rating_type ^ "_rating) as int) as average_rating from players where clan_id = ?"
 
 let select_average_rating clan_id =
   let average_rating = ref Int64.zero in
   let fill_rating c col = match col with
   | ("average_rating", Sqlite3.Data.INT ar) -> average_rating := ar; c
   | _ -> c in
-  let s = prepare_bind_stmt select_average_rating_stmt [Sqlite3.Data.INT clan_id] in
+  let s = prepare_bind_stmt (select_average_rating_stmt "ctf") [Sqlite3.Data.INT clan_id] in
   let _ = Option.map (fun x -> of_row_e x fill_rating) (exec_select_single_row_stmt s) in
   !average_rating
