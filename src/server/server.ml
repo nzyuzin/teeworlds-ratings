@@ -111,10 +111,10 @@ let process_teeworlds_message (msg: Json.t) (db: string): Teeworlds_message.serv
 let process_data_request (msg: External_messages.data_request) db: External_messages.data_request_response =
   let _ = Db.open_db_read_only db in
   let result = match msg with
-  | External_messages.Players_by_rating (limit, offset) ->
+  | External_messages.Players_by_rating {limit = limit; offset = offset; rating = rating} ->
       let hundred = Int64.of_int 100 in
       let bounded_limit = if Int64.compare limit hundred > 0 then hundred else limit in
-      let players = Player.select_by_rating bounded_limit offset in
+      let players = Player.select_by_rating bounded_limit offset rating in
       let players_count = Player.count () in
       External_messages.Players_by_rating {
         total_players = players_count;

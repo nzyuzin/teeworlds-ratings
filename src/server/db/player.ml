@@ -1,5 +1,7 @@
 open Db
 
+type rating = CTF | DM
+
 type t = {id: int64; name: string; clan_id: int64; ctf_rating: int64; dm_rating: int64; secret_key: string}
 
 let empty () = {
@@ -9,6 +11,10 @@ let empty () = {
   dm_rating = Int64.minus_one;
   secret_key = ""
 }
+
+let string_of_rating = function
+  | CTF -> "ctf_rating"
+  | DM -> "dm_rating"
 
 let of_row_e named_row additional_cols =
   let open Sqlite3.Data in
@@ -74,10 +80,10 @@ let select_with_secret (player_name: string): t option =
     [Sqlite3.Data.TEXT player_name] in
   Option.map (fun r -> of_row_e r fill_secret) (exec_select_single_row_stmt prepared_select_stmt)
 
-let select_by_rating_stmt = "select id, name, clan_id, ctf_rating, dm_rating from players order by ctf_rating DESC limit(?) offset(?)"
+let select_by_rating_stmt rating = "select id, name, clan_id, ctf_rating, dm_rating from players order by " ^ (string_of_rating rating) ^ " DESC limit(?) offset(?)"
 
-let select_by_rating limit offset =
-  let s = prepare_bind_stmt select_by_rating_stmt [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
+let select_by_rating limit offset rating =
+  let s = prepare_bind_stmt (select_by_rating_stmt rating) [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
   of_rows (exec_select_stmt s)
 
 let select_by_clan_stmt = "select id, name, clan_id, ctf_rating, dm_rating from players where clan_id = ?"

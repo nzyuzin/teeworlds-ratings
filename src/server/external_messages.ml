@@ -3,7 +3,7 @@ exception UnknownDataRequest of string
 exception UnknownRegistrationRequest of string
 
 type data_request =
-  | Players_by_rating of int64 * int64
+  | Players_by_rating of {limit: int64; offset: int64; rating: Player.rating}
   | Player_info of string
   | Clan_info of string
   | Game_info of int64
@@ -50,11 +50,17 @@ type external_message_response =
 let wrap_int (i: int64) =
   `Int(Int64.to_int i)
 
+let rating_of_string:  string -> Player.rating = function
+  | "ctf" -> Player.CTF
+  | "dm" -> Player.DM
+  | something_else -> raise (Json.error_ill_formed "rating" (`String something_else))
+
 let players_by_rating_of_json: Json.t -> data_request = function
   | `Assoc([
       ("limit", `Int(limit));
       ("offset", `Int(offset));
-    ]) -> Players_by_rating (Int64.of_int limit, Int64.of_int offset)
+      ("rating", `String(rating));
+    ]) -> Players_by_rating {limit = Int64.of_int limit; offset = Int64.of_int offset; rating = rating_of_string rating}
   | something_else -> raise (Json.error_ill_formed "players_by_rating" something_else)
 
 let player_info_of_json: Json.t -> data_request = function
