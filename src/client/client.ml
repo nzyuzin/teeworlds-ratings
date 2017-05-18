@@ -19,7 +19,7 @@ let send addr json =
     | Json.Message("teeworlds_message", body) -> body
     | Json.Message(something_else, _) -> raise (UnrecognizedServerReponse something_else)
     | Json.Error msg -> raise (ServerError msg) in
-  let result = Json.server_response_of_json response_teeworlds_message in
+  let result = Teeworlds_message.server_response_of_json response_teeworlds_message in
   let _ = Network.close_connection conn in
   result
 
@@ -39,7 +39,7 @@ let run teeworlds_message addr econ_port econ_password debug =
   let _ = Global.set is_debug debug in
   let _ = prdebug ("Input:\n" ^ teeworlds_message ^ "\n") in
   let parsed_message = Teeworlds_message.parse_message teeworlds_message in
-  let teeworlds_message_json = Json.json_of_teeworlds_message parsed_message in
+  let teeworlds_message_json = Teeworlds_message.json_of_teeworlds_message parsed_message in
   let json = Json.of_message (Json.Message ("teeworlds_message", teeworlds_message_json)) in
   try
     communicate_with_server json addr econ_port econ_password

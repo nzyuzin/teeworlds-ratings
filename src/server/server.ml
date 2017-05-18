@@ -102,12 +102,13 @@ let process_player_request pr clid db =
   callback_command
 
 let process_teeworlds_message (msg: Json.t) (db: string): Teeworlds_message.server_response =
-  match Json.teeworlds_message_of_json msg with
-  | Teeworlds_message.Gameinfo gameinfo ->
+  let open Teeworlds_message in
+  match teeworlds_message_of_json msg with
+  | Gameinfo gameinfo ->
       let _ = process_gameinfo gameinfo db in
-      Teeworlds_message.Acknowledge
-  | Teeworlds_message.Player_request (req, clid)  ->
-      Teeworlds_message.Callback (process_player_request req clid db)
+      Acknowledge
+  | Player_request (req, clid)  ->
+      Callback (process_player_request req clid db)
 
 let process_data_request (msg: External_messages.data_request) db: External_messages.data_request_response =
   let _ = Db.open_db_read_only db in
@@ -225,18 +226,19 @@ let process_registration_request (rr: External_messages.registration_request) db
   result
 
 let process_external_message msg db: External_messages.external_message_response =
-  match External_messages.external_message_of_json msg with
-  | External_messages.Data_request dr ->
-      External_messages.Data_request_response (process_data_request dr db)
-  | External_messages.Registration_request rr ->
-      External_messages.Registration_request_response (process_registration_request rr db)
+  let open External_messages in
+  match external_message_of_json msg with
+  | Data_request dr ->
+      Data_request_response (process_data_request dr db)
+  | Registration_request rr ->
+      Registration_request_response (process_registration_request rr db)
 
 let process_message (msg: Json.t) (db: string): Json.t =
   let pack_teeworlds_message json = Json.of_message (Json.Message ("teeworlds_message", json)) in
   let pack_external_message json = Json.of_message (Json.Message ("external_message", json)) in
   match Json.to_message msg with
   | Json.Message ("teeworlds_message", body) ->
-      pack_teeworlds_message (Json.json_of_server_response (process_teeworlds_message body db))
+      pack_teeworlds_message (Teeworlds_message.json_of_server_response (process_teeworlds_message body db))
   | Json.Message ("external_message", body) ->
       pack_external_message (External_messages.json_of_external_message_response (process_external_message body db))
   | Json.Error str -> Json.of_message (Json.Error "Unexpected error request")
