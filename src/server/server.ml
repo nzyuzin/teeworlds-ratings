@@ -110,19 +110,19 @@ let process_teeworlds_message (msg: Json.t) (db: string): Teeworlds_message.serv
   | Player_request (req, clid)  ->
       Callback (process_player_request req clid db)
 
-let process_data_request (msg: External_messages.data_request) db: External_messages.data_request_response =
+let process_data_request (msg: External_message.data_request) db: External_message.data_request_response =
   let _ = Db.open_db_read_only db in
   let result = match msg with
-  | External_messages.Players_by_rating {limit = limit; offset = offset; rating = rating} ->
+  | External_message.Players_by_rating {limit = limit; offset = offset; rating = rating} ->
       let hundred = Int64.of_int 100 in
       let bounded_limit = if Int64.compare limit hundred > 0 then hundred else limit in
       let players = Player.select_by_rating bounded_limit offset rating in
       let players_count = Player.count () in
-      External_messages.Players_by_rating {
+      External_message.Players_by_rating {
         total_players = players_count;
         players = players
       }
-  | External_messages.Player_info name ->
+  | External_message.Player_info name ->
       let p = Player.select_with_secret name in
       begin match p with
         | Some player ->
@@ -130,7 +130,7 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
           let (stats, total_games) = Option.get (Player_stats.select name) in
           let clan = Clan.select player.Player.clan_id in
           let clan_name = if Option.is_none clan then "" else (Option.get clan).Clan.name in
-          External_messages.Player_info {
+          External_message.Player_info {
             player = player;
             clan_name = clan_name;
             stats = stats;
@@ -139,20 +139,20 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
           }
         | None -> raise NotFound
       end
-  | External_messages.Clan_info name ->
+  | External_message.Clan_info name ->
       let c = Clan.select_by_name name in
       begin match c with
         | Some clan ->
           let players = Player.select_by_clan clan.Clan.id in
           let average_rating = Clan.select_average_rating clan.Clan.id in
-          External_messages.Clan_info {
+          External_message.Clan_info {
             clan = clan;
             average_rating = average_rating;
             players = players;
           }
         | None -> raise NotFound
       end
-  | External_messages.Game_info id ->
+  | External_message.Game_info id ->
       let attach_name plr =
         begin match Player.select_by_id plr.Game_player.player_id with
           | None -> raise (Failure "Player is not found by game player id!")
@@ -164,22 +164,22 @@ let process_data_request (msg: External_messages.data_request) db: External_mess
         end in
       let players = Game_player.select_by_game id in
       let players_with_names = List.map attach_name players in
-      External_messages.Game_info (game, players_with_names)
-  | External_messages.Games_by_date (limit, offset) ->
+      External_message.Game_info (game, players_with_names)
+  | External_message.Games_by_date (limit, offset) ->
       let hundred = Int64.of_int 100 in
       let bounded_limit = if Int64.compare limit hundred > 0 then hundred else limit in
       let games = Game.select_latest bounded_limit offset in
       let games_count = Game.count () in
-      External_messages.Games_by_date (games_count, games) in
+      External_message.Games_by_date (games_count, games) in
   let _ = Db.close_db () in
   result
 
-let process_registration_request (rr: External_messages.registration_request) db: External_messages.registration_request_response =
+let process_registration_request (rr: External_message.registration_request) db: External_message.registration_request_response =
   let result = match rr with
-  | External_messages.Name_available name ->
+  | External_message.Name_available name ->
       let _ = Db.open_db_read_only db in
-      External_messages.Name_available (None == (Player.select name))
-  | External_messages.Register name ->
+      External_message.Name_available (None == (Player.select name))
+  | External_message.Register name ->
       let _ = Db.open_db db in
       let _ = Db.begin_transaction () in
       let player_id = try
@@ -199,8 +199,8 @@ let process_registration_request (rr: External_messages.registration_request) db
       with
       | error -> let _ = Db.rollback_transaction () in
         raise error in
-      External_messages.Success player_id
-  | External_messages.Register_clan {name = name; clan_leader = clan_leader_id} ->
+      External_message.Success player_id
+  | External_message.Register_clan {name = name; clan_leader = clan_leader_id} ->
       let _ = Db.open_db db in
       let _ = Db.begin_transaction () in
       let clan_id = try
@@ -211,8 +211,8 @@ let process_registration_request (rr: External_messages.registration_request) db
       with
       | error -> let _ = Db.rollback_transaction () in
         raise error in
-      External_messages.Success clan_id
-  | External_messages.Join_clan {player_id = player_id; clan_id = clan_id} ->
+      External_message.Success clan_id
+  | External_message.Join_clan {player_id = player_id; clan_id = clan_id} ->
       let _ = Db.open_db db in
       let _ = Db.begin_transaction () in
       let _ = try
@@ -221,12 +221,12 @@ let process_registration_request (rr: External_messages.registration_request) db
       with
       | error -> let _ = Db.rollback_transaction () in
         raise error in
-      External_messages.Success clan_id in
+      External_message.Success clan_id in
   let _ = Db.close_db () in
   result
 
-let process_external_message msg db: External_messages.external_message_response =
-  let open External_messages in
+let process_external_message msg db: External_message.external_message_response =
+  let open External_message in
   match external_message_of_json msg with
   | Data_request dr ->
       Data_request_response (process_data_request dr db)
@@ -240,7 +240,7 @@ let process_message (msg: Json.t) (db: string): Json.t =
   | Json.Message ("teeworlds_message", body) ->
       pack_teeworlds_message (Teeworlds_message.json_of_server_response (process_teeworlds_message body db))
   | Json.Message ("external_message", body) ->
-      pack_external_message (External_messages.json_of_external_message_response (process_external_message body db))
+      pack_external_message (External_message.json_of_external_message_response (process_external_message body db))
   | Json.Error str -> Json.of_message (Json.Error "Unexpected error request")
   | Json.Message (msg_type, _) -> raise (UnknownMessageType msg_type)
 
