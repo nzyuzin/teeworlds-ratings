@@ -30,11 +30,11 @@ let insert_stmt =
   "insert into games (gametype, map, game_time, game_result, game_date) " ^
   "values (?, ?, ?, ?, datetime('now'))"
 
-let insert (game: Gameinfo.gameinfo) =
+let insert (game: Gameinfo.t) =
   let open Sqlite3 in
   let game_result = Gameinfo.string_of_game_result game.Gameinfo.game_result in
   let prepared_insert_stmt = prepare_bind_stmt insert_stmt [
-    Data.TEXT game.Gameinfo.gametype;
+    Data.TEXT (Gameinfo.string_of_gametype game.Gameinfo.gametype);
     Data.TEXT game.Gameinfo.map;
     Data.INT (Int64.of_int game.Gameinfo.time);
     Data.TEXT game_result

@@ -34,7 +34,7 @@ type player_request =
   | Login of string * string
 
 type t =
-  | Gameinfo of Gameinfo.gameinfo
+  | Gameinfo of Gameinfo.t
   | Player_request of player_request * int
 
 type server_response =

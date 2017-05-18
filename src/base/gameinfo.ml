@@ -17,6 +17,9 @@
  *
  *)
 
+exception UnsupportedGametype of string
+
+type gametype = Rctf | Rtdm
 type team = Red | Blue
 type game_result =
   | Winner of team
@@ -43,13 +46,24 @@ type player = {
   stats: player_stats;
 }
 
-type gameinfo = {
-  gametype: string;
+type t = {
+  gametype: gametype;
   map: string;
   time: int;
   game_result: game_result;
   players: player list;
 }
+
+let gametype_of_string str =
+  let lstr = String.lowercase_ascii str in
+  match lstr with
+  | "rctf" -> Rctf
+  | "rtdm" -> Rtdm
+  | something_else -> raise (UnsupportedGametype str)
+
+let string_of_gametype = function
+  | Rctf -> "rCTF"
+  | Rtdm -> "rTDM"
 
 let team_of_string team_str = if team_str = "RED" then Red else Blue
 
@@ -101,7 +115,7 @@ let rec parse_players (players_lines: string Stream.t) =
       player :: (parse_players players_lines)
     end
 
-let parse_gameinfo (info_lines: string Stream.t): gameinfo =
+let parse_gameinfo (info_lines: string Stream.t): t =
   let id x = x in
   let gametype_str = Stream.next info_lines in
   let gt = Scanf.sscanf gametype_str "Gametype: %s" id in
@@ -114,7 +128,7 @@ let parse_gameinfo (info_lines: string Stream.t): gameinfo =
   let _ = Stream.junk info_lines in (* Skip "Players:" line *)
   let plrs = parse_players info_lines in
   {
-    gametype = gt;
+    gametype = gametype_of_string gt;
     map = mp;
     time = int_of_string time_in_seconds;
     game_result = game_result_of_string gmrslt;

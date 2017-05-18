@@ -1,7 +1,5 @@
 open Db
 
-type rating = CTF | DM
-
 type t = {id: int64; name: string; clan_id: int64; ctf_rating: int64; dm_rating: int64; secret_key: string}
 
 let empty () = {
@@ -12,9 +10,9 @@ let empty () = {
   secret_key = ""
 }
 
-let string_of_rating = function
-  | CTF -> "ctf_rating"
-  | DM -> "dm_rating"
+let rating_of_gametype = function
+  | Gameinfo.Rctf -> "ctf_rating"
+  | Gameinfo.Rtdm -> "dm_rating"
 
 let of_row_e named_row additional_cols =
   let open Sqlite3.Data in
@@ -80,7 +78,7 @@ let select_with_secret (player_name: string): t option =
     [Sqlite3.Data.TEXT player_name] in
   Option.map (fun r -> of_row_e r fill_secret) (exec_select_single_row_stmt prepared_select_stmt)
 
-let select_by_rating_stmt rating = "select id, name, clan_id, ctf_rating, dm_rating from players order by " ^ (string_of_rating rating) ^ " DESC limit(?) offset(?)"
+let select_by_rating_stmt rating = "select id, name, clan_id, ctf_rating, dm_rating from players order by " ^ (rating_of_gametype rating) ^ " DESC limit(?) offset(?)"
 
 let select_by_rating limit offset rating =
   let s = prepare_bind_stmt (select_by_rating_stmt rating) [Sqlite3.Data.INT limit; Sqlite3.Data.INT offset] in
@@ -127,6 +125,13 @@ let update_ctf_rating_stmt = "update players set ctf_rating = ctf_rating + ? whe
 let update_ctf_rating (game_id: int64) (player_name: string) (rating_change: int64): unit =
   let open Sqlite3.Data in
   let s = prepare_bind_stmt update_ctf_rating_stmt [INT rating_change; TEXT player_name] in
+  exec_update_stmt s
+
+let update_dm_rating_stmt = "update players set dm_rating = dm_rating + ? where name = ?"
+
+let update_dm_rating (game_id: int64) (player_name: string) (rating_change: int64): unit =
+  let open Sqlite3.Data in
+  let s = prepare_bind_stmt update_dm_rating_stmt [INT rating_change; TEXT player_name] in
   exec_update_stmt s
 
 let update_clan_stmt = "update players set clan_id = ? where id = ?"

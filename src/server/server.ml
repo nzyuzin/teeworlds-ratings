@@ -14,7 +14,7 @@ let process_player_info player gameinfo game_id =
     Player.select player.Gameinfo.name in
   let update_rating existing_player =
     let new_rating = Rating.calculate_new_rating
-      player game_id gameinfo.Gameinfo.game_result in
+      player game_id gameinfo in
     Int64.sub new_rating existing_player.Player.ctf_rating in
   let lambda = match select_player player with
   | None -> raise (UnknownPlayer player.Gameinfo.name)
@@ -22,7 +22,7 @@ let process_player_info player gameinfo game_id =
   let _ = Game_player.insert player game_id in
   lambda
 
-let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
+let process_gameinfo (gameinfo: Gameinfo.t) (db: string): unit =
   let players = gameinfo.Gameinfo.players in
   let _ = Db.open_db db in
   let _ = Db.begin_transaction () in
@@ -36,7 +36,8 @@ let process_gameinfo (gameinfo: Gameinfo.gameinfo) (db: string): unit =
      * then produce empty lambda, while updates are entirely in lambdas.
      *)
     let ratings = List.map (fun get_rating -> get_rating ()) delayed_ratings in
-    let update_rating player rating = Rating.update_rating game_id player.Gameinfo.name rating in
+    let update_rating player rating =
+      Rating.update_rating game_id gameinfo player.Gameinfo.name rating in
     let _ = List.iter2 update_rating players ratings in
     Db.commit_transaction ()
   with

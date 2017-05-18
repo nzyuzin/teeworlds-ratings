@@ -75,13 +75,13 @@ let rec json_of_players (players: Gameinfo.player list) =
       ("stats", json_of_stats player.stats);
     ]) :: (json_of_players rest)
 
-let json_of_gameinfo (gameinfo: Gameinfo.gameinfo) =
+let json_of_gameinfo (gameinfo: Gameinfo.t) = let open Gameinfo in
   `Assoc([
-    ("gametype", `String(gameinfo.Gameinfo.gametype));
-    ("map", `String(gameinfo.Gameinfo.map));
-    ("time", `Int(gameinfo.Gameinfo.time));
-    ("game_result", `String(Gameinfo.string_of_game_result(gameinfo.Gameinfo.game_result)));
-    ("players", `List(json_of_players gameinfo.Gameinfo.players))
+    ("gametype", `String(string_of_gametype gameinfo.gametype));
+    ("map", `String(gameinfo.map));
+    ("time", `Int(gameinfo.time));
+    ("game_result", `String(string_of_game_result(gameinfo.game_result)));
+    ("players", `List(json_of_players gameinfo.players))
   ])
 
 let stats_of_json: t -> Gameinfo.player_stats = let open Gameinfo in function
@@ -140,7 +140,7 @@ let gameinfo_of_json (gameinfo: Yojson.Basic.json): Teeworlds_message.t =
       ("game_result", `String(rslt));
       ("players", `List(plrs))
     ]) -> Teeworlds_message.Gameinfo {
-        Gameinfo.gametype = gt;
+        Gameinfo.gametype = Gameinfo.gametype_of_string gt;
         Gameinfo.map = map;
         Gameinfo.time = time;
         Gameinfo.game_result = Gameinfo.game_result_of_string rslt;
