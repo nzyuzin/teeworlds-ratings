@@ -80,7 +80,7 @@ let select_latest_by_player player_name limit: (t * int64) list =
 
 let select_players_by_team_stmt =
   "select " ^
-  "  players.name, players.clan_id, players.rating " ^
+  "  players.name, players.clan_id, players.ctf_rating, players.dm_rating " ^
   "from " ^
   "  players inner join game_players on players.id = game_players.player_id " ^
   "where " ^

@@ -90,13 +90,13 @@ let select_by_clan clan_id =
   let s = prepare_bind_stmt select_by_clan_stmt [Sqlite3.Data.INT clan_id] in
   of_rows (exec_select_stmt s)
 
-let select_top5_stmt = "select id, name, clan_id, ctf_rating, dm_rating from players order by rating DESC limit(5)"
+let select_top5_stmt = "select id, name, clan_id, ctf_rating, dm_rating from players order by dm_rating DESC limit(5)"
 
 let select_top5 (): t list =
   let prepared_select_stmt = prepare_stmt select_top5_stmt in
   of_rows (exec_select_stmt prepared_select_stmt)
 
-let select_with_ctf_rank_stmt =
+let select_with_dm_rank_stmt =
   "with this_player as ( " ^
   "    select id, name, clan_id, ctf_rating, dm_rating " ^
   "    from players " ^
@@ -105,16 +105,16 @@ let select_with_ctf_rank_stmt =
   "  rank as ( " ^
   "    select count(*) as rank " ^
   "    from players as higher_players, this_player " ^
-  "    where this_player.ctf_rating < higher_players.ctf_rating " ^
+  "    where this_player.dm_rating < higher_players.dm_rating " ^
   "  ) " ^
-  "select id, name, clan_id, ctf_rating, (rank + 1) as rank from this_player, rank "
+  "select id, name, clan_id, ctf_rating, dm_rating, (rank + 1) as rank from this_player, rank "
 
-let select_with_ctf_rank (player_name: string): (t * int64) option =
+let select_with_dm_rank (player_name: string): (t * int64) option =
   let rank = ref Int64.minus_one in
   let fill_rank p c = match c with
   | ("rank", Sqlite3.Data.INT r) -> rank := r; p
   | _ -> p in
-  let prepared_stmt = prepare_bind_stmt select_with_ctf_rank_stmt [Sqlite3.Data.TEXT player_name] in
+  let prepared_stmt = prepare_bind_stmt select_with_dm_rank_stmt [Sqlite3.Data.TEXT player_name] in
   let player_with_rank p =
     let pl =  of_row_e p fill_rank in (* First do mutation of the rank ref *)
     (pl, !rank) in
